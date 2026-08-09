@@ -33,10 +33,11 @@ Convertra is a new native macOS audio utility for DJs and music libraries. The d
 16. 2026-08-10 — Added minimal Git ignores for local SwiftPM, Xcode, and Finder build artifacts.
 17. 2026-08-10 — Connected the local repository to `https://github.com/hamidkazimov777-cmd/convertra.git`; the remote was empty when checked.
 18. 2026-08-10 — Created the initial local Git commit `f484f2d` (`Initial Convertra foundation and library ingestion`) containing the complete project foundation and library-ingestion work.
+19. 2026-08-10 — Published the initial project history to GitHub on `main`; the local branch now tracks `origin/main`.
 
 ## Current State
 
-The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor and listed without duplicate paths. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The project builds and its tests pass locally.
+The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor and listed without duplicate paths. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The project builds and its tests pass locally. Its source history is published on GitHub `main`.
 
 ## Pending Tasks
 
