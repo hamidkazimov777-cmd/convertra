@@ -34,6 +34,7 @@ let package = Package(
                 "Core/Models/MetadataEditDraft.swift",
                 "Core/Models/AudioAnalysis.swift",
                 "Core/Models/ConversionJob.swift",
+                "Core/Models/CoreDataModel.swift",
                 "Core/Audio/AudioPlayerEngine.swift",
                 "Features/Player/PlayerViewModel.swift",
                 "Features/Player/PlayerView.swift",
