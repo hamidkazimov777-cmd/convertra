@@ -4,6 +4,17 @@ import UniformTypeIdentifiers
 
 @MainActor
 final class AppViewModel: ObservableObject {
+    struct LibraryStatus: Equatable {
+        enum Severity: Equatable {
+            case information
+            case warning
+            case error
+        }
+
+        let message: String
+        let severity: Severity
+    }
+
     enum Section: String, CaseIterable, Identifiable {
         case library = "Library"
         case conversion = "Conversion"
@@ -24,10 +35,13 @@ final class AppViewModel: ObservableObject {
 
     @Published var selectedSection: Section? = .library
     @Published private(set) var library: [AudioFile] = []
+    @Published var selectedAudioFileIDs = Set<AudioFile.ID>()
     @Published var isImporterPresented = false
     @Published private(set) var isScanningLibrary = false
     @Published private(set) var isAnalyzingTechnicalMetadata = false
-    @Published private(set) var libraryStatusMessage: String?
+    @Published private(set) var libraryStatus: LibraryStatus?
+    @Published var isLibraryErrorPresented = false
+    @Published private(set) var libraryErrorMessage = ""
 
     private let libraryScanner = AudioLibraryScanner()
     private let technicalMetadataExtractor = AudioTechnicalMetadataExtractor()
@@ -40,6 +54,10 @@ final class AppViewModel: ObservableObject {
         "WAV, AIFF, FLAC, ALAC, MP3, AAC, and M4A"
     }
 
+    var selectedAudioFileCount: Int {
+        selectedAudioFileIDs.count
+    }
+
     func presentImporter() {
         isImporterPresented = true
     }
@@ -49,8 +67,12 @@ final class AppViewModel: ObservableObject {
         case let .success(urls):
             Task { await scanAndAdd(urls: urls) }
         case let .failure(error):
-            libraryStatusMessage = "Could not access the selected items: \(error.localizedDescription)"
+            presentLibraryError("Could not access the selected items: \(error.localizedDescription)")
         }
+    }
+
+    func clearLibrarySelection() {
+        selectedAudioFileIDs.removeAll()
     }
 
     func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -71,7 +93,7 @@ final class AppViewModel: ObservableObject {
 
     private func scanAndAdd(urls: [URL]) async {
         guard !urls.isEmpty else {
-            libraryStatusMessage = "No accessible files or folders were provided."
+            presentLibraryError("No accessible files or folders were provided.")
             return
         }
 
@@ -81,7 +103,10 @@ final class AppViewModel: ObservableObject {
         }
 
         isScanningLibrary = true
-        libraryStatusMessage = "Scanning \(urls.count) selected item\(urls.count == 1 ? "" : "s")…"
+        setLibraryStatus(
+            "Scanning \(urls.count) selected item\(urls.count == 1 ? "" : "s")…",
+            severity: .information
+        )
 
         let result = await libraryScanner.scan(urls: urls)
         let existingURLs = Set(library.map { $0.url.standardizedFileURL })
@@ -94,12 +119,18 @@ final class AppViewModel: ObservableObject {
 
         let addedCount = newFiles.count
         if addedCount == 0 {
-            libraryStatusMessage = "No new supported audio files found."
+            setLibraryStatus(
+                "No new supported audio files found. Skipped \(result.skippedItemCount) unsupported or inaccessible item\(result.skippedItemCount == 1 ? "" : "s").",
+                severity: .warning
+            )
             return
         }
 
         isAnalyzingTechnicalMetadata = true
-        libraryStatusMessage = "Reading technical metadata for \(addedCount) track\(addedCount == 1 ? "" : "s")…"
+        setLibraryStatus(
+            "Reading technical metadata for \(addedCount) track\(addedCount == 1 ? "" : "s")…",
+            severity: .information
+        )
         let analysisResults = await technicalMetadataExtractor.analyze(urls: newFiles.map(\.url))
         let analysesByURL = Dictionary(
             analysisResults.compactMap { result in
@@ -116,7 +147,27 @@ final class AppViewModel: ObservableObject {
         isAnalyzingTechnicalMetadata = false
 
         let analyzedCount = analysesByURL.count
-        libraryStatusMessage = "Added \(addedCount) track\(addedCount == 1 ? "" : "s"). Read technical metadata for \(analyzedCount)."
+        let failedAnalysisCount = addedCount - analyzedCount
+        let skippedDescription = result.skippedItemCount > 0
+            ? " Skipped \(result.skippedItemCount) unsupported or inaccessible item\(result.skippedItemCount == 1 ? "" : "s")."
+            : ""
+        let analysisDescription = failedAnalysisCount > 0
+            ? " Technical metadata was unavailable for \(failedAnalysisCount) track\(failedAnalysisCount == 1 ? "" : "s")."
+            : " Read technical metadata for all tracks."
+        setLibraryStatus(
+            "Added \(addedCount) track\(addedCount == 1 ? "" : "s").\(analysisDescription)\(skippedDescription)",
+            severity: failedAnalysisCount > 0 || result.skippedItemCount > 0 ? .warning : .information
+        )
+    }
+
+    private func setLibraryStatus(_ message: String, severity: LibraryStatus.Severity) {
+        libraryStatus = LibraryStatus(message: message, severity: severity)
+    }
+
+    private func presentLibraryError(_ message: String) {
+        libraryErrorMessage = message
+        setLibraryStatus(message, severity: .error)
+        isLibraryErrorPresented = true
     }
 
     private static func url(from provider: NSItemProvider) async -> URL? {

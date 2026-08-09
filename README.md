@@ -26,6 +26,7 @@ DJs and music-library managers need reliable utilities that can handle deeply ne
 - Background library scanning through an isolated Swift actor.
 - Duplicate-path filtering and a live library list.
 - AVFoundation-backed duration, bitrate, sample-rate, channel-count, and codec extraction.
+- Search, sortable library columns, multi-track selection, and clear processing/error feedback.
 - Unit coverage for recursive discovery, technical metadata extraction, and the default MP3 conversion settings.
 
 ### Planned
@@ -80,7 +81,7 @@ Open `Package.swift` in Xcode to run the native SwiftUI app.
 
 ## Development status
 
-The current milestone establishes reliable ingestion and technical inspection. The immediate next task is a more capable Library UI: sortable columns, search, selection, and clearer processing feedback.
+The current milestone establishes reliable ingestion, technical inspection, and an efficient library workflow. The immediate next task is persistent library storage with security-scoped bookmarks.
 
 For a detailed change log, design decisions, known limitations, and the next recommended task, see [handoff/HANDOFF.md](handoff/HANDOFF.md).
 

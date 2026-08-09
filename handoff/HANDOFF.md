@@ -37,10 +37,13 @@ Convertra is a new native macOS audio utility for DJs and music libraries. The d
 20. 2026-08-10 — Added a recruiter-oriented README covering product purpose, implemented scope, architecture, engineering decisions, setup, roadmap, and professional contact information.
 21. 2026-08-10 — Implemented AVFoundation-based technical metadata extraction for imported tracks, including duration, bitrate, sample rate, channel count, and codec, plus a generated-WAV extractor test.
 22. 2026-08-10 — Verified technical metadata extraction with `swift build` and `swift test`: 3 tests passed with 0 failures. Excluded README from the executable target to remove the SwiftPM manifest warning.
+23. 2026-08-10 — Implemented Library UX improvements: searchable and sortable columns, persistent multi-track selection, and severity-based processing/error feedback.
+24. 2026-08-10 — Added presentation-model coverage for display fallbacks and technical-value formatting.
+25. 2026-08-10 — Verified Library UX improvements with `swift build` and `swift test`: 5 tests passed with 0 failures.
 
 ## Current State
 
-The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor and listed without duplicate paths. AVFoundation now extracts technical properties for newly imported tracks and displays them in Library. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The project builds and all 3 tests pass locally. Its source history is published on GitHub `main` and includes a professional README.
+The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor, analyzed through AVFoundation, and listed without duplicate paths. Library supports search, sortable columns, multi-track selection, and clear processing/error feedback. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The project builds and all 5 tests pass locally. Its source history is published on GitHub `main` and includes a professional README.
 
 ## Pending Tasks
 
@@ -60,6 +63,7 @@ The project is configured as a native SwiftUI macOS executable. It displays a si
 - Source control remote: `origin` points to `hamidkazimov777-cmd/convertra` on GitHub. Generated build output remains ignored.
 - Folder traversal uses `AudioLibraryScanner`, an actor. It requests security-scoped access only while scanning a user-selected URL and releases it immediately afterwards; persistent bookmark storage is deferred until library persistence exists.
 - Technical properties are extracted through `AVURLAsset` and audio-track format descriptions. The app holds a selected root's security-scoped access through both discovery and extraction, allowing nested folder items to be analyzed safely.
+- Library sorting and search are UI-local for instant feedback. Selected track IDs are held in `AppViewModel`, creating a reusable selection boundary for batch metadata and conversion workflows.
 - Conversion default is modeled as MP3 at 320 kbps CBR with metadata, artwork, and folder-structure preservation enabled.
 - Artwork is modeled as a file location rather than retained image data, which protects memory usage for large libraries.
 
@@ -71,4 +75,4 @@ The project is configured as a native SwiftUI macOS executable. It displays a si
 
 ## Next Recommended Step
 
-Improve the Library experience with sortable columns, search, track selection, and clear processing/error feedback.
+Implement persistent library storage and security-scoped bookmarks so imported folders are available after relaunch.
