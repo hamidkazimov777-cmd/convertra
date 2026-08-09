@@ -7,7 +7,7 @@ enum FFmpegError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .binaryNotFound:
-            return "FFmpeg binary was not found in the application bundle or local paths."
+            return "The 'ffmpeg' command-line tool is missing. Convertra requires FFmpeg for conversion and metadata editing. Please install it (e.g., 'brew install ffmpeg') or place the binary in the app bundle."
         case let .executionFailed(code, output):
             return "FFmpeg execution failed with code \(code):\n\(output)"
         }

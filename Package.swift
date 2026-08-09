@@ -40,6 +40,7 @@ let package = Package(
                 "Core/Services/FFmpegCommandRunner.swift",
                 "Core/Services/AudioMetadataWriter.swift",
                 "Core/Services/AudioConversionEngine.swift",
+                "Core/Services/WaveformAnalyzer.swift",
                 "Features/Conversion/ConversionQueueViewModel.swift",
                 "Features/Conversion/ConversionQueueView.swift",
                 "Core/Services/AudioAnalyzerEngine.swift"

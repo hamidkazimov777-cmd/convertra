@@ -29,15 +29,35 @@ struct PlayerView: View {
             
             Spacer()
             
-            // Waveform placeholder
+            // Waveform
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(nsColor: .windowBackgroundColor))
-                    .frame(height: 120)
                 
-                Text("Waveform Preview (Future)")
-                    .foregroundStyle(.tertiary)
+                if viewModel.isGeneratingWaveform {
+                    ProgressView()
+                } else if !viewModel.waveformData.isEmpty {
+                    GeometryReader { geo in
+                        let progress = viewModel.duration > 0 ? CGFloat(viewModel.currentPosition / viewModel.duration) : 0
+                        
+                        WaveformShape(samples: viewModel.waveformData)
+                            .fill(Color.secondary.opacity(0.3))
+                        
+                        WaveformShape(samples: viewModel.waveformData)
+                            .fill(Color.accentColor)
+                            .mask(
+                                Rectangle()
+                                    .frame(width: geo.size.width * progress)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            )
+                    }
+                    .padding()
+                } else {
+                    Text("No Waveform Data")
+                        .foregroundStyle(.tertiary)
+                }
             }
+            .frame(height: 120)
             .padding(.horizontal)
             
             Spacer()
@@ -112,5 +132,34 @@ struct PlayerView: View {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+struct WaveformShape: Shape {
+    let samples: [Float]
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        guard !samples.isEmpty else { return path }
+        
+        let width = rect.width / CGFloat(samples.count)
+        let midY = rect.midY
+        let height = rect.height
+        
+        for (index, sample) in samples.enumerated() {
+            let x = CGFloat(index) * width
+            let sampleHeight = CGFloat(sample) * height
+            
+            let barRect = CGRect(
+                x: x,
+                y: midY - sampleHeight / 2,
+                width: max(1, width - 1),
+                height: max(2, sampleHeight)
+            )
+            
+            path.addRoundedRect(in: barRect, cornerSize: CGSize(width: 2, height: 2))
+        }
+        
+        return path
     }
 }

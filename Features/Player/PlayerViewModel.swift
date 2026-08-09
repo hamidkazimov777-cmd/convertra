@@ -4,6 +4,8 @@ import Combine
 @MainActor
 final class PlayerViewModel: ObservableObject {
     @Published private(set) var currentTrack: AudioFile?
+    @Published private(set) var waveformData: [Float] = []
+    @Published private(set) var isGeneratingWaveform = false
     
     @Published private(set) var isPlaying = false
     @Published var currentPosition: TimeInterval = 0 {
@@ -21,6 +23,8 @@ final class PlayerViewModel: ObservableObject {
     }
     
     private let engine = AudioPlayerEngine()
+    private let waveformAnalyzer = WaveformAnalyzer()
+    private var waveformGenerationTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
     private var isEngineUpdatingPosition = false
     
@@ -48,11 +52,32 @@ final class PlayerViewModel: ObservableObject {
     func handleSelectionChange(selectedFiles: [AudioFile]) {
         let firstFile = selectedFiles.first
         if currentTrack?.id != firstFile?.id {
+            waveformGenerationTask?.cancel()
+            waveformData = []
+            
             currentTrack = firstFile
             if let url = firstFile?.url {
                 engine.load(url: url)
+                generateWaveform(for: url)
             } else {
                 engine.stop()
+            }
+        }
+    }
+    
+    private func generateWaveform(for url: URL) {
+        isGeneratingWaveform = true
+        waveformGenerationTask = Task {
+            do {
+                let data = try await waveformAnalyzer.generateWaveform(for: url, targetSampleCount: 150)
+                if !Task.isCancelled {
+                    self.waveformData = data.samples
+                    self.isGeneratingWaveform = false
+                }
+            } catch {
+                if !Task.isCancelled {
+                    self.isGeneratingWaveform = false
+                }
             }
         }
     }

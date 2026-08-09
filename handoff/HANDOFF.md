@@ -63,6 +63,8 @@ Convertra is a new native macOS audio utility for DJs and music libraries. The d
 63. 2026-08-10 — Initiated Stage 8 (BPM and Key Analysis).
 64. 2026-08-10 — Developed a completely native 0-dependency `AudioAnalyzerEngine` utilizing Apple's Accelerate framework (vDSP) to perform high-speed offline tempo extraction via envelope and onset detection.
 65. 2026-08-10 — Integrated BPM into `AudioTechnicalMetadataExtractor` and updated `LibraryView` to display and sort by BPM. Key detection is left as a future iteration due to complexity.
+66. 2026-08-10 — Initiated Stage 9. Improved FFmpeg error messages to be more actionable.
+67. 2026-08-10 — Developed `WaveformAnalyzer` and integrated a dynamic SwiftUI `WaveformShape` into `PlayerView` with progress masking.
 
 ## Current State
 
@@ -72,9 +74,7 @@ Library supports search, sortable columns, multi-track selection, clear processi
 
 ## Pending Tasks
 
-- Add robust Error Handling and User Feedback mechanisms for FFmpeg integration if binary is missing.
 - Improve persistence scalability and add large-library performance coverage.
-- Design and implement the Waveform Preview for the Audio Player.
 - Refine Key Analysis if required.
 - Build production UI, accessibility, and broader test coverage.
 
@@ -105,4 +105,4 @@ Library supports search, sortable columns, multi-track selection, clear processi
 
 ## Next Recommended Step
 
-Design and implement the Waveform Preview for the Audio Player, or add FFmpeg error handling mechanisms.
+Test large library performance or refine the UI for the production build.
