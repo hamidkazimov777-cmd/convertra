@@ -40,12 +40,14 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var isRestoringLibrary = true
     @Published private(set) var isScanningLibrary = false
     @Published private(set) var isAnalyzingTechnicalMetadata = false
+    @Published private(set) var isReadingMetadata = false
     @Published private(set) var libraryStatus: LibraryStatus?
     @Published var isLibraryErrorPresented = false
     @Published private(set) var libraryErrorMessage = ""
 
     private let libraryScanner = AudioLibraryScanner()
     private let technicalMetadataExtractor = AudioTechnicalMetadataExtractor()
+    private let metadataExtractor = AudioMetadataExtractor()
     private let libraryPersistenceStore = LibraryPersistenceStore()
     private var sourceBookmarks: [Data] = []
     private var trackBookmarks: [AudioFile.ID: Data] = [:]
@@ -57,7 +59,7 @@ final class AppViewModel: ObservableObject {
     }
 
     var isLibraryProcessing: Bool {
-        isRestoringLibrary || isScanningLibrary || isAnalyzingTechnicalMetadata
+        isRestoringLibrary || isScanningLibrary || isAnalyzingTechnicalMetadata || isReadingMetadata
     }
 
     var supportedFileTypesDescription: String {
@@ -161,6 +163,26 @@ final class AppViewModel: ObservableObject {
         }
         isAnalyzingTechnicalMetadata = false
 
+        isReadingMetadata = true
+        setLibraryStatus(
+            "Reading tags and artwork for \(addedCount) track\(addedCount == 1 ? "" : "s")…",
+            severity: .information
+        )
+        let metadataResults = await metadataExtractor.read(files: newFiles)
+        let metadataByAudioFileID = Dictionary(
+            metadataResults.compactMap { result in
+                result.metadata.map { (result.audioFileID, $0) }
+            },
+            uniquingKeysWith: { latest, _ in latest }
+        )
+        library = library.map { audioFile in
+            guard let readMetadata = metadataByAudioFileID[audioFile.id] else { return audioFile }
+            var updatedFile = audioFile
+            updatedFile.metadata = audioFile.metadata.merged(with: readMetadata)
+            return updatedFile
+        }
+        isReadingMetadata = false
+
         let newSourceBookmarks = await libraryPersistenceStore.bookmarkData(for: urls)
         for bookmark in newSourceBookmarks.values where !sourceBookmarks.contains(bookmark) {
             sourceBookmarks.append(bookmark)
@@ -174,19 +196,24 @@ final class AppViewModel: ObservableObject {
 
         let analyzedCount = analysesByURL.count
         let failedAnalysisCount = addedCount - analyzedCount
+        let metadataReadCount = metadataByAudioFileID.count
+        let failedMetadataReadCount = addedCount - metadataReadCount
         let skippedDescription = result.skippedItemCount > 0
             ? " Skipped \(result.skippedItemCount) unsupported or inaccessible item\(result.skippedItemCount == 1 ? "" : "s")."
             : ""
         let analysisDescription = failedAnalysisCount > 0
             ? " Technical metadata was unavailable for \(failedAnalysisCount) track\(failedAnalysisCount == 1 ? "" : "s")."
             : " Read technical metadata for all tracks."
+        let metadataDescription = failedMetadataReadCount > 0
+            ? " Metadata was unavailable for \(failedMetadataReadCount) track\(failedMetadataReadCount == 1 ? "" : "s")."
+            : " Read tags for \(metadataReadCount) track\(metadataReadCount == 1 ? "" : "s")."
         let wasSaved = await persistLibrary()
         let persistenceDescription = wasSaved
             ? " Library saved locally."
             : " The library could not be saved locally."
         setLibraryStatus(
-            "Added \(addedCount) track\(addedCount == 1 ? "" : "s").\(analysisDescription)\(skippedDescription)\(persistenceDescription)",
-            severity: failedAnalysisCount > 0 || result.skippedItemCount > 0 || !wasSaved ? .warning : .information
+            "Added \(addedCount) track\(addedCount == 1 ? "" : "s").\(analysisDescription)\(metadataDescription)\(skippedDescription)\(persistenceDescription)",
+            severity: failedAnalysisCount > 0 || failedMetadataReadCount > 0 || result.skippedItemCount > 0 || !wasSaved ? .warning : .information
         )
     }
 

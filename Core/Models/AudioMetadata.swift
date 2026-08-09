@@ -39,4 +39,19 @@ struct AudioMetadata: Codable, Hashable, Sendable {
         self.composer = composer
         self.artworkLocation = artworkLocation
     }
+
+    func merged(with readMetadata: AudioMetadata) -> AudioMetadata {
+        AudioMetadata(
+            title: readMetadata.title ?? title,
+            artist: readMetadata.artist ?? artist,
+            album: readMetadata.album ?? album,
+            genre: readMetadata.genre ?? genre,
+            year: readMetadata.year ?? year,
+            trackNumber: readMetadata.trackNumber ?? trackNumber,
+            comments: readMetadata.comments ?? comments,
+            isrc: readMetadata.isrc ?? isrc,
+            composer: readMetadata.composer ?? composer,
+            artworkLocation: readMetadata.artworkLocation ?? artworkLocation
+        )
+    }
 }

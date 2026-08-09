@@ -259,6 +259,7 @@ struct LibraryView: View {
     private var processingLabel: String {
         if appState.isRestoringLibrary { return "Restoring…" }
         if appState.isAnalyzingTechnicalMetadata { return "Analyzing…" }
+        if appState.isReadingMetadata { return "Reading Tags…" }
         return "Scanning…"
     }
 }
