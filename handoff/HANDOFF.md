@@ -45,6 +45,7 @@ Convertra is a new native macOS audio utility for DJs and music libraries. The d
 28. 2026-08-10 — Corrected bookmark refresh resolution found during the initial persistence compiler check.
 29. 2026-08-10 — Reworked the persistence test’s async assertion pattern so the actor call completes before XCTest evaluates the result.
 30. 2026-08-10 — Verified persistent-library storage with `swift build` and `swift test`: 7 tests passed with 0 failures.
+31. 2026-08-10 — Aligned the handoff sequence with the approved roadmap: metadata reading is the next implementation stage, before BPM/key analysis.
 
 ## Current State
 
@@ -52,9 +53,9 @@ The project is configured as a native SwiftUI macOS executable. It displays a si
 
 ## Pending Tasks
 
+- Implement metadata reading, single/batch editing, artwork handling, and writing.
 - Design and implement BPM and musical-key analysis.
 - Improve persistence scalability and add large-library performance coverage.
-- Implement metadata reading, single/batch editing, artwork handling, and writing.
 - Implement a conversion engine after selecting an approved encoding approach.
 - Implement playback, seeking, volume, and waveform preview.
 - Build production UI, error handling, accessibility, and broader test coverage.
@@ -81,4 +82,4 @@ The project is configured as a native SwiftUI macOS executable. It displays a si
 
 ## Next Recommended Step
 
-Design and implement BPM and musical-key analysis.
+Implement metadata reading for title, artist, album, genre, year, track number, comments, ISRC, composer, and artwork.
