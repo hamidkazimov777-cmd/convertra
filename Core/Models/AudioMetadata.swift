@@ -1,6 +1,6 @@
 import Foundation
 
-struct AudioMetadata: Hashable, Sendable {
+struct AudioMetadata: Codable, Hashable, Sendable {
     var title: String?
     var artist: String?
     var album: String?

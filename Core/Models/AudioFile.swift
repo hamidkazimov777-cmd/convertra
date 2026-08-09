@@ -2,7 +2,7 @@ import Foundation
 
 /// A library item and its file-system identity. Audio analysis and metadata are
 /// deliberately separate values so they can be loaded independently in the future.
-struct AudioFile: Identifiable, Hashable, Sendable {
+struct AudioFile: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
     let url: URL
     var metadata: AudioMetadata

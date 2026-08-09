@@ -1,6 +1,6 @@
 import Foundation
 
-struct AudioAnalysis: Hashable, Sendable {
+struct AudioAnalysis: Codable, Hashable, Sendable {
     var bpm: Double?
     var musicalKey: MusicalKey?
     var duration: TimeInterval

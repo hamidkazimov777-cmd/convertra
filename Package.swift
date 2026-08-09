@@ -24,6 +24,7 @@ let package = Package(
                 "Core/Audio/SupportedAudioFormat.swift",
                 "Core/Services/AudioLibraryScanner.swift",
                 "Core/Services/AudioTechnicalMetadataExtractor.swift",
+                "Core/Services/LibraryPersistenceStore.swift",
                 "Core/Models/AudioFile.swift",
                 "Core/Models/AudioMetadata.swift",
                 "Core/Models/AudioAnalysis.swift",

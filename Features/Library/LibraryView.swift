@@ -89,7 +89,7 @@ struct LibraryView: View {
                 if appState.isLibraryProcessing {
                     ProgressView()
                         .controlSize(.small)
-                    Text(appState.isAnalyzingTechnicalMetadata ? "Analyzing…" : "Scanning…")
+                    Text(processingLabel)
                         .foregroundStyle(.secondary)
                 }
                 TextField("Search library", text: $searchText)
@@ -254,5 +254,11 @@ struct LibraryView: View {
         case .warning: return .orange
         case .error: return .red
         }
+    }
+
+    private var processingLabel: String {
+        if appState.isRestoringLibrary { return "Restoring…" }
+        if appState.isAnalyzingTechnicalMetadata { return "Analyzing…" }
+        return "Scanning…"
     }
 }

@@ -37,6 +37,7 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var library: [AudioFile] = []
     @Published var selectedAudioFileIDs = Set<AudioFile.ID>()
     @Published var isImporterPresented = false
+    @Published private(set) var isRestoringLibrary = true
     @Published private(set) var isScanningLibrary = false
     @Published private(set) var isAnalyzingTechnicalMetadata = false
     @Published private(set) var libraryStatus: LibraryStatus?
@@ -45,9 +46,18 @@ final class AppViewModel: ObservableObject {
 
     private let libraryScanner = AudioLibraryScanner()
     private let technicalMetadataExtractor = AudioTechnicalMetadataExtractor()
+    private let libraryPersistenceStore = LibraryPersistenceStore()
+    private var sourceBookmarks: [Data] = []
+    private var trackBookmarks: [AudioFile.ID: Data] = [:]
+
+    init() {
+        Task { [weak self] in
+            await self?.restorePersistedLibrary()
+        }
+    }
 
     var isLibraryProcessing: Bool {
-        isScanningLibrary || isAnalyzingTechnicalMetadata
+        isRestoringLibrary || isScanningLibrary || isAnalyzingTechnicalMetadata
     }
 
     var supportedFileTypesDescription: String {
@@ -63,6 +73,11 @@ final class AppViewModel: ObservableObject {
     }
 
     func handleFileImport(_ result: Result<[URL], Error>) {
+        guard !isLibraryProcessing else {
+            setLibraryStatus("Library is busy. Please wait for the current operation to finish.", severity: .warning)
+            return
+        }
+
         switch result {
         case let .success(urls):
             Task { await scanAndAdd(urls: urls) }
@@ -146,6 +161,17 @@ final class AppViewModel: ObservableObject {
         }
         isAnalyzingTechnicalMetadata = false
 
+        let newSourceBookmarks = await libraryPersistenceStore.bookmarkData(for: urls)
+        for bookmark in newSourceBookmarks.values where !sourceBookmarks.contains(bookmark) {
+            sourceBookmarks.append(bookmark)
+        }
+        let newTrackBookmarks = await libraryPersistenceStore.bookmarkData(for: newFiles.map(\.url))
+        for audioFile in newFiles {
+            if let bookmark = newTrackBookmarks[audioFile.url.standardizedFileURL] {
+                trackBookmarks[audioFile.id] = bookmark
+            }
+        }
+
         let analyzedCount = analysesByURL.count
         let failedAnalysisCount = addedCount - analyzedCount
         let skippedDescription = result.skippedItemCount > 0
@@ -154,10 +180,75 @@ final class AppViewModel: ObservableObject {
         let analysisDescription = failedAnalysisCount > 0
             ? " Technical metadata was unavailable for \(failedAnalysisCount) track\(failedAnalysisCount == 1 ? "" : "s")."
             : " Read technical metadata for all tracks."
+        let wasSaved = await persistLibrary()
+        let persistenceDescription = wasSaved
+            ? " Library saved locally."
+            : " The library could not be saved locally."
         setLibraryStatus(
-            "Added \(addedCount) track\(addedCount == 1 ? "" : "s").\(analysisDescription)\(skippedDescription)",
-            severity: failedAnalysisCount > 0 || result.skippedItemCount > 0 ? .warning : .information
+            "Added \(addedCount) track\(addedCount == 1 ? "" : "s").\(analysisDescription)\(skippedDescription)\(persistenceDescription)",
+            severity: failedAnalysisCount > 0 || result.skippedItemCount > 0 || !wasSaved ? .warning : .information
         )
+    }
+
+    private func restorePersistedLibrary() async {
+        setLibraryStatus("Restoring saved library…", severity: .information)
+
+        do {
+            guard let snapshot = try await libraryPersistenceStore.load() else {
+                libraryStatus = nil
+                isRestoringLibrary = false
+                return
+            }
+
+            let restoration = await libraryPersistenceStore.restore(snapshot)
+            library = restoration.tracks.map(\.audioFile)
+            sourceBookmarks = snapshot.sourceBookmarks
+            trackBookmarks = Dictionary(
+                restoration.tracks.compactMap { track in
+                    track.bookmarkData.map { (track.audioFile.id, $0) }
+                },
+                uniquingKeysWith: { latest, _ in latest }
+            )
+            selectedAudioFileIDs.removeAll()
+
+            if restoration.unavailableTrackCount > 0 {
+                setLibraryStatus(
+                    "Restored \(library.count) track\(library.count == 1 ? "" : "s"). \(restoration.unavailableTrackCount) saved track\(restoration.unavailableTrackCount == 1 ? " was" : "s were") unavailable.",
+                    severity: .warning
+                )
+            } else {
+                setLibraryStatus(
+                    "Restored \(library.count) track\(library.count == 1 ? "" : "s") from the saved library.",
+                    severity: .information
+                )
+            }
+        } catch {
+            setLibraryStatus(
+                "Saved library could not be restored: \(error.localizedDescription)",
+                severity: .error
+            )
+        }
+
+        isRestoringLibrary = false
+    }
+
+    private func persistLibrary() async -> Bool {
+        let snapshot = LibraryPersistenceSnapshot(
+            sourceBookmarks: sourceBookmarks,
+            tracks: library.map { audioFile in
+                PersistedLibraryTrack(
+                    audioFile: audioFile,
+                    bookmarkData: trackBookmarks[audioFile.id]
+                )
+            }
+        )
+
+        do {
+            try await libraryPersistenceStore.save(snapshot)
+            return true
+        } catch {
+            return false
+        }
     }
 
     private func setLibraryStatus(_ message: String, severity: LibraryStatus.Severity) {

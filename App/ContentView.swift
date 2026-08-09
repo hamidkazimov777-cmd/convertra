@@ -45,6 +45,7 @@ struct ContentView: View {
                 } label: {
                     Label("Add Audio", systemImage: "plus")
                 }
+                .disabled(appState.isLibraryProcessing)
                 .help("Add supported audio files or folders")
             }
         }
