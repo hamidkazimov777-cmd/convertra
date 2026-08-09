@@ -35,7 +35,12 @@ let package = Package(
                 "Core/Models/ConversionJob.swift",
                 "Core/Audio/AudioPlayerEngine.swift",
                 "Features/Player/PlayerViewModel.swift",
-                "Features/Player/PlayerView.swift"
+                "Features/Player/PlayerView.swift",
+                "Core/Services/FFmpegCommandRunner.swift",
+                "Core/Services/AudioMetadataWriter.swift",
+                "Core/Services/AudioConversionEngine.swift",
+                "Features/Conversion/ConversionQueueViewModel.swift",
+                "Features/Conversion/ConversionQueueView.swift"
             ]
         ),
         .testTarget(

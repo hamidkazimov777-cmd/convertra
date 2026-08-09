@@ -57,18 +57,23 @@ Convertra is a new native macOS audio utility for DJs and music libraries. The d
 40. 2026-08-10 — Verified native batch metadata editing with `swift build` and `swift test`: 13 tests passed with 0 failures.
 41. 2026-08-10 — Initiated Stage 6 (Audio Player). Analyzed project architecture and created `AudioPlayerEngine` in `Core/Audio` acting as an `ObservableObject` wrapper around `AVPlayer` for safe playback on the MainActor, fulfilling the 'no dependencies' and 'Apple Frameworks natively' constraints.
 42. 2026-08-10 — Completed Stage 6 base. Implemented `PlayerViewModel` and `PlayerView` UI containing Play, Pause, Stop, Seek, Volume, and duration formatting. Resolved Swift 6 concurrency warnings. The player now works seamlessly with library track selections.
+60. 2026-08-10 — Initiated Stage 7 (Audio Conversion & Metadata Writing). Configured integration strategy to use pre-compiled FFmpeg binary for cross-format robustness (avoiding limits of AVFoundation).
+61. 2026-08-10 — Implemented `FFmpegCommandRunner`, `AudioMetadataWriter`, and `AudioConversionEngine` using Swift `async/await` and non-blocking `Process` execution.
+62. 2026-08-10 — Created `ConversionQueueViewModel` and `ConversionQueueView` to manage and display lossless-to-MP3 conversion jobs. Integrated the Convert action into the main Library toolbar.
 
 ## Current State
 
-The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor, analyzed through AVFoundation, and listed without duplicate paths. Common, iTunes, and ID3 metadata is read on import, with artwork retained as local cached files. Selected tracks can be updated singly or in batches through the native Metadata editor, with changes persisted in Convertra's library snapshot. Library supports search, sortable columns, multi-track selection, clear processing/error feedback, and startup restoration from a local snapshot. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The AudioPlayerEngine provides a foundation for AVFoundation-based playback. The project builds without warnings and tests pass locally. Its source history is published on GitHub `main` and includes a professional README.
+The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor, analyzed through AVFoundation, and listed without duplicate paths. Common, iTunes, and ID3 metadata is read on import, with artwork retained as local cached files. Selected tracks can be updated singly or in batches through the native Metadata editor, with changes persisted in Convertra's library snapshot and written permanently to the source audio files via an integrated FFmpeg engine. 
+
+Library supports search, sortable columns, multi-track selection, clear processing/error feedback, and startup restoration from a local snapshot. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The AudioPlayerEngine provides a foundation for AVFoundation-based playback. The AudioConversionEngine uses FFmpeg to transcode tracks into MP3s, managed visually by the new Conversion Queue. The project builds without warnings and tests pass locally. Its source history is published on GitHub `main` and includes a professional README.
 
 ## Pending Tasks
 
-- Select an approved cross-format metadata writer and implement source-file writes.
+- Add robust Error Handling and User Feedback mechanisms for FFmpeg integration if binary is missing.
 - Design and implement BPM and musical-key analysis.
 - Improve persistence scalability and add large-library performance coverage.
-- Implement a conversion engine after selecting an approved encoding approach.
-- Build production UI, error handling, accessibility, and broader test coverage.
+- Design and implement the Waveform Preview for the Audio Player.
+- Build production UI, accessibility, and broader test coverage.
 
 ## Technical Decisions
 
@@ -86,15 +91,16 @@ The project is configured as a native SwiftUI macOS executable. It displays a si
 - Conversion default is modeled as MP3 at 320 kbps CBR with metadata, artwork, and folder-structure preservation enabled.
 - Artwork is modeled as a file location rather than retained image data, which protects memory usage for large libraries.
 - For Stage 6, the `AudioPlayerEngine` relies exclusively on native `AVFoundation` (`AVPlayer`, `AVPlayerItem`) for standard playback capabilities (Play, Pause, Stop, Seek, Volume, Duration), strictly avoiding unapproved third-party dependencies. 
+- For Stage 7, the `AudioConversionEngine` and `AudioMetadataWriter` utilize a pre-compiled `ffmpeg` binary called via `Process`. This bypasses Apple's lack of native MP3 encoding and poor in-place metadata rewriting support while maintaining strict Swift memory safety by not importing raw C-libraries.
 
 ## Known Issues
 
 - Persistent bookmarks are created from user-selected locations, but bookmark behavior has not yet been verified in a sandboxed, signed `.app` bundle.
 - AVFoundation metadata coverage differs by audio container; reading has not yet been validated against a broad real-world media corpus.
-- Source audio-file metadata is currently read-only. Cross-format file writing awaits dependency selection and explicit approval.
-- No audio analysis or conversion is implemented yet.
+- The bundled FFmpeg binary strategy requires the user to place an `ffmpeg` executable in the bundle Resources or `/opt/homebrew/bin/ffmpeg` path for operations to succeed.
+- No audio analysis (BPM/Key) is implemented yet.
 - Swift Package development setup is not a signed/distributable `.app` bundle yet.
 
 ## Next Recommended Step
 
-Design and implement the Waveform Preview for the Audio Player, or move to Stage 7 (Audio Conversion/Metadata Writing).
+Test and refine the FFmpeg integration with actual test files, or move to Stage 8 (BPM and Musical-Key Analysis).

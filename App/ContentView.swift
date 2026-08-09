@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
 
     var body: some View {
         HSplitView {
@@ -17,11 +18,7 @@ struct ContentView: View {
                 case .library:
                     LibraryView()
                 case .conversion:
-                    FeaturePlaceholderView(
-                        title: "Conversion Queue",
-                        message: "Lossless-to-MP3 conversion jobs will appear here.",
-                        image: "arrow.triangle.2.circlepath"
-                    )
+                    ConversionQueueView()
                 case .metadata:
                     MetadataEditorView()
                 case .player:
@@ -40,6 +37,17 @@ struct ContentView: View {
                 .disabled(appState.isLibraryProcessing)
                 .help("Add supported audio files or folders")
             }
+            
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: .mp3_320CBR)
+                    appState.selectedSection = .conversion
+                } label: {
+                    Label("Convert", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .disabled(appState.selectedAudioFileIDs.isEmpty || appState.isLibraryProcessing)
+                .help("Add selected tracks to the conversion queue")
+            }
         }
         .fileImporter(
             isPresented: $appState.isImporterPresented,
@@ -51,7 +59,7 @@ struct ContentView: View {
     }
 }
 
-private struct FeaturePlaceholderView: View {
+struct FeaturePlaceholderView: View {
     let title: String
     let message: String
     let image: String

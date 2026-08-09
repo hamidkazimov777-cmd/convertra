@@ -52,6 +52,7 @@ final class AppViewModel: ObservableObject {
     private let metadataExtractor = AudioMetadataExtractor()
     private let artworkCache = ArtworkCache()
     private let libraryPersistenceStore = LibraryPersistenceStore()
+    private let metadataWriter = AudioMetadataWriter()
     private var sourceBookmarks: [Data] = []
     private var trackBookmarks: [AudioFile.ID: Data] = [:]
 
@@ -337,15 +338,20 @@ final class AppViewModel: ObservableObject {
                 }
             }
 
-            library = try library.map { audioFile in
-                guard selectedIDs.contains(audioFile.id) else { return audioFile }
+            var updatedLibrary = library
+            for i in updatedLibrary.indices {
+                let audioFile = updatedLibrary[i]
+                guard selectedIDs.contains(audioFile.id) else { continue }
                 var updatedAudioFile = audioFile
                 updatedAudioFile.metadata = try metadataEditDraft.applying(to: audioFile.metadata)
                 if let artworkLocation = artworkLocations[audioFile.id] {
                     updatedAudioFile.metadata.artworkLocation = artworkLocation
                 }
-                return updatedAudioFile
+                
+                try await metadataWriter.write(metadata: updatedAudioFile.metadata, to: updatedAudioFile.url)
+                updatedLibrary[i] = updatedAudioFile
             }
+            library = updatedLibrary
 
             let wasSaved = await persistLibrary()
             isApplyingMetadataEdits = false
@@ -357,7 +363,7 @@ final class AppViewModel: ObservableObject {
             }
 
             setLibraryStatus(
-                "Applied metadata changes to \(selectedIDs.count) track\(selectedIDs.count == 1 ? "" : "s") and saved the library. Source-file writing is not enabled yet.",
+                "Applied metadata changes to \(selectedIDs.count) track\(selectedIDs.count == 1 ? "" : "s") and saved the library.",
                 severity: .information
             )
             prepareMetadataEditDraft()
