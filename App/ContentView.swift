@@ -23,11 +23,7 @@ struct ContentView: View {
                         image: "arrow.triangle.2.circlepath"
                     )
                 case .metadata:
-                    FeaturePlaceholderView(
-                        title: "Metadata Editor",
-                        message: "Select one or more tracks to edit their metadata.",
-                        image: "tag"
-                    )
+                    MetadataEditorView()
                 case .player:
                     FeaturePlaceholderView(
                         title: "Player",

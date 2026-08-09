@@ -51,14 +51,18 @@ Convertra is a new native macOS audio utility for DJs and music libraries. The d
 34. 2026-08-10 — Removed unsupported Common metadata identifiers discovered during the initial compiler check; genre and track number remain covered through iTunes and ID3 identifiers.
 35. 2026-08-10 — Made the metadata extractor a stateless `Sendable` service, avoiding AVFoundation non-Sendable metadata objects crossing an actor boundary while retaining asynchronous processing.
 36. 2026-08-10 — Verified metadata reading and artwork caching with a warning-free `swift build` and `swift test`: 10 tests passed with 0 failures.
+37. 2026-08-10 — Implemented a native single/batch metadata editor with selective field application, numeric validation, artwork replacement/removal, rollback on local persistence failure, and source-file write transparency.
+38. 2026-08-10 — Added metadata edit-draft coverage for selective updates, clearing values, and validation.
+39. 2026-08-10 — Corrected metadata editor compatibility with macOS 12 and draft initialization/empty-track-number edge cases found during the initial compiler check.
+40. 2026-08-10 — Verified native batch metadata editing with `swift build` and `swift test`: 13 tests passed with 0 failures.
 
 ## Current State
 
-The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor, analyzed through AVFoundation, and listed without duplicate paths. Common, iTunes, and ID3 metadata is read on import, with artwork retained as local cached files. Library supports search, sortable columns, multi-track selection, clear processing/error feedback, and startup restoration from a local snapshot. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The project builds without warnings and all 10 tests pass locally. Its source history is published on GitHub `main` and includes a professional README.
+The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor, analyzed through AVFoundation, and listed without duplicate paths. Common, iTunes, and ID3 metadata is read on import, with artwork retained as local cached files. Selected tracks can be updated singly or in batches through the native Metadata editor, with changes persisted in Convertra's library snapshot. Library supports search, sortable columns, multi-track selection, clear processing/error feedback, and startup restoration from a local snapshot. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The project builds without warnings and all 13 tests pass locally. Its source history is published on GitHub `main` and includes a professional README.
 
 ## Pending Tasks
 
-- Implement single/batch metadata editing and writing.
+- Select an approved cross-format metadata writer and implement source-file writes.
 - Design and implement BPM and musical-key analysis.
 - Improve persistence scalability and add large-library performance coverage.
 - Implement a conversion engine after selecting an approved encoding approach.
@@ -77,6 +81,7 @@ The project is configured as a native SwiftUI macOS executable. It displays a si
 - Library sorting and search are UI-local for instant feedback. Selected track IDs are held in `AppViewModel`, creating a reusable selection boundary for batch metadata and conversion workflows.
 - Library state is stored atomically as JSON in Application Support. Security-scoped bookmarks are kept for selected sources and tracks; unavailable entries are omitted during restoration and reported to the user.
 - Metadata extraction uses AVFoundation common, iTunes, and ID3 identifiers. Cover art is cached locally in Application Support rather than retained in large in-memory library records.
+- Batch metadata changes are explicit per field: disabled fields remain unchanged, while an enabled blank field clears its value. Edits are first persisted in Convertra's snapshot; source media files are not modified yet.
 - Conversion default is modeled as MP3 at 320 kbps CBR with metadata, artwork, and folder-structure preservation enabled.
 - Artwork is modeled as a file location rather than retained image data, which protects memory usage for large libraries.
 
@@ -84,9 +89,10 @@ The project is configured as a native SwiftUI macOS executable. It displays a si
 
 - Persistent bookmarks are created from user-selected locations, but bookmark behavior has not yet been verified in a sandboxed, signed `.app` bundle.
 - AVFoundation metadata coverage differs by audio container; reading has not yet been validated against a broad real-world media corpus.
+- Source audio-file metadata is currently read-only. Cross-format file writing awaits dependency selection and explicit approval.
 - No audio analysis, metadata persistence/editing, conversion, or playback is implemented yet.
 - Swift Package development setup is not a signed/distributable `.app` bundle yet.
 
 ## Next Recommended Step
 
-Implement single and batch metadata editing with safe file writes and artwork replacement.
+Select and approve a cross-format metadata writer before implementing source-file writes.

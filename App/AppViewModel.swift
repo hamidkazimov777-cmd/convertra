@@ -36,11 +36,13 @@ final class AppViewModel: ObservableObject {
     @Published var selectedSection: Section? = .library
     @Published private(set) var library: [AudioFile] = []
     @Published var selectedAudioFileIDs = Set<AudioFile.ID>()
+    @Published var metadataEditDraft = MetadataEditDraft()
     @Published var isImporterPresented = false
     @Published private(set) var isRestoringLibrary = true
     @Published private(set) var isScanningLibrary = false
     @Published private(set) var isAnalyzingTechnicalMetadata = false
     @Published private(set) var isReadingMetadata = false
+    @Published private(set) var isApplyingMetadataEdits = false
     @Published private(set) var libraryStatus: LibraryStatus?
     @Published var isLibraryErrorPresented = false
     @Published private(set) var libraryErrorMessage = ""
@@ -48,6 +50,7 @@ final class AppViewModel: ObservableObject {
     private let libraryScanner = AudioLibraryScanner()
     private let technicalMetadataExtractor = AudioTechnicalMetadataExtractor()
     private let metadataExtractor = AudioMetadataExtractor()
+    private let artworkCache = ArtworkCache()
     private let libraryPersistenceStore = LibraryPersistenceStore()
     private var sourceBookmarks: [Data] = []
     private var trackBookmarks: [AudioFile.ID: Data] = [:]
@@ -59,7 +62,7 @@ final class AppViewModel: ObservableObject {
     }
 
     var isLibraryProcessing: Bool {
-        isRestoringLibrary || isScanningLibrary || isAnalyzingTechnicalMetadata || isReadingMetadata
+        isRestoringLibrary || isScanningLibrary || isAnalyzingTechnicalMetadata || isReadingMetadata || isApplyingMetadataEdits
     }
 
     var supportedFileTypesDescription: String {
@@ -68,6 +71,10 @@ final class AppViewModel: ObservableObject {
 
     var selectedAudioFileCount: Int {
         selectedAudioFileIDs.count
+    }
+
+    var selectedAudioFiles: [AudioFile] {
+        library.filter { selectedAudioFileIDs.contains($0.id) }
     }
 
     func presentImporter() {
@@ -90,6 +97,40 @@ final class AppViewModel: ObservableObject {
 
     func clearLibrarySelection() {
         selectedAudioFileIDs.removeAll()
+    }
+
+    func prepareMetadataEditDraft() {
+        metadataEditDraft = MetadataEditDraft(files: selectedAudioFiles)
+    }
+
+    func handleArtworkImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case let .success(urls):
+            guard let url = urls.first else { return }
+            Task {
+                do {
+                    metadataEditDraft.artworkData = try await artworkCache.loadImageData(from: url)
+                    metadataEditDraft.artworkMode = .replace
+                } catch {
+                    presentLibraryError("Could not read the selected artwork: \(error.localizedDescription)")
+                }
+            }
+        case let .failure(error):
+            presentLibraryError("Could not access the selected artwork: \(error.localizedDescription)")
+        }
+    }
+
+    func applyMetadataEditDraft() {
+        guard !selectedAudioFiles.isEmpty else {
+            presentLibraryError("Select at least one track before applying metadata changes.")
+            return
+        }
+        guard metadataEditDraft.hasChanges else {
+            setLibraryStatus("Choose at least one metadata field to apply.", severity: .warning)
+            return
+        }
+
+        Task { await applyMetadataEdits() }
     }
 
     func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -275,6 +316,54 @@ final class AppViewModel: ObservableObject {
             return true
         } catch {
             return false
+        }
+    }
+
+    private func applyMetadataEdits() async {
+        do {
+            let selectedIDs = selectedAudioFileIDs
+            let previousLibrary = library
+            var artworkLocations: [AudioFile.ID: URL] = [:]
+
+            isApplyingMetadataEdits = true
+            setLibraryStatus(
+                "Applying metadata changes to \(selectedIDs.count) track\(selectedIDs.count == 1 ? "" : "s")…",
+                severity: .information
+            )
+
+            if metadataEditDraft.artworkMode == .replace, let artworkData = metadataEditDraft.artworkData {
+                for audioFile in selectedAudioFiles {
+                    artworkLocations[audioFile.id] = try await artworkCache.store(artworkData, for: audioFile.id)
+                }
+            }
+
+            library = try library.map { audioFile in
+                guard selectedIDs.contains(audioFile.id) else { return audioFile }
+                var updatedAudioFile = audioFile
+                updatedAudioFile.metadata = try metadataEditDraft.applying(to: audioFile.metadata)
+                if let artworkLocation = artworkLocations[audioFile.id] {
+                    updatedAudioFile.metadata.artworkLocation = artworkLocation
+                }
+                return updatedAudioFile
+            }
+
+            let wasSaved = await persistLibrary()
+            isApplyingMetadataEdits = false
+
+            guard wasSaved else {
+                library = previousLibrary
+                presentLibraryError("Metadata changes could not be saved locally. No library changes were kept.")
+                return
+            }
+
+            setLibraryStatus(
+                "Applied metadata changes to \(selectedIDs.count) track\(selectedIDs.count == 1 ? "" : "s") and saved the library. Source-file writing is not enabled yet.",
+                severity: .information
+            )
+            prepareMetadataEditDraft()
+        } catch {
+            isApplyingMetadataEdits = false
+            presentLibraryError(error.localizedDescription)
         }
     }
 

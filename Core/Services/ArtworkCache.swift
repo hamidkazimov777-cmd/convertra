@@ -18,6 +18,16 @@ actor ArtworkCache {
         return artworkURL
     }
 
+    func loadImageData(from url: URL) throws -> Data {
+        let accessedSecurityScope = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessedSecurityScope {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        return try Data(contentsOf: url)
+    }
+
     private func fileExtension(for imageData: Data) -> String {
         let bytes = [UInt8](imageData.prefix(8))
         if bytes.starts(with: [0x89, 0x50, 0x4E, 0x47]) { return "png" }

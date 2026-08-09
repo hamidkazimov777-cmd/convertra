@@ -21,6 +21,7 @@ let package = Package(
                 "App/AppViewModel.swift",
                 "App/ContentView.swift",
                 "Features/Library/LibraryView.swift",
+                "Features/Metadata/MetadataEditorView.swift",
                 "Core/Audio/SupportedAudioFormat.swift",
                 "Core/Services/AudioLibraryScanner.swift",
                 "Core/Services/AudioTechnicalMetadataExtractor.swift",
@@ -29,6 +30,7 @@ let package = Package(
                 "Core/Services/LibraryPersistenceStore.swift",
                 "Core/Models/AudioFile.swift",
                 "Core/Models/AudioMetadata.swift",
+                "Core/Models/MetadataEditDraft.swift",
                 "Core/Models/AudioAnalysis.swift",
                 "Core/Models/ConversionJob.swift"
             ]

@@ -29,6 +29,7 @@ DJs and music-library managers need reliable utilities that can handle deeply ne
 - Search, sortable library columns, multi-track selection, and clear processing/error feedback.
 - Persistent local library snapshots with security-scoped bookmarks for restored file access.
 - AVFoundation metadata reads for core tags and local artwork caching.
+- Native batch metadata editor with selective updates to the persisted library.
 - Unit coverage for recursive discovery, technical metadata extraction, and the default MP3 conversion settings.
 
 ### Planned
@@ -83,7 +84,7 @@ Open `Package.swift` in Xcode to run the native SwiftUI app.
 
 ## Development status
 
-The current milestone establishes reliable ingestion, technical inspection, persistent library state, and metadata reads. The immediate next task is batch metadata editing.
+The current milestone establishes reliable ingestion, technical inspection, persistent library state, and batch metadata edits inside Convertra. The immediate next task is selecting an approved cross-format tag writer for source-file writes.
 
 For a detailed change log, design decisions, known limitations, and the next recommended task, see [handoff/HANDOFF.md](handoff/HANDOFF.md).
 
