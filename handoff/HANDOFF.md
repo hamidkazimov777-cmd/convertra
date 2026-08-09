@@ -60,6 +60,9 @@ Convertra is a new native macOS audio utility for DJs and music libraries. The d
 60. 2026-08-10 — Initiated Stage 7 (Audio Conversion & Metadata Writing). Configured integration strategy to use pre-compiled FFmpeg binary for cross-format robustness (avoiding limits of AVFoundation).
 61. 2026-08-10 — Implemented `FFmpegCommandRunner`, `AudioMetadataWriter`, and `AudioConversionEngine` using Swift `async/await` and non-blocking `Process` execution.
 62. 2026-08-10 — Created `ConversionQueueViewModel` and `ConversionQueueView` to manage and display lossless-to-MP3 conversion jobs. Integrated the Convert action into the main Library toolbar.
+63. 2026-08-10 — Initiated Stage 8 (BPM and Key Analysis).
+64. 2026-08-10 — Developed a completely native 0-dependency `AudioAnalyzerEngine` utilizing Apple's Accelerate framework (vDSP) to perform high-speed offline tempo extraction via envelope and onset detection.
+65. 2026-08-10 — Integrated BPM into `AudioTechnicalMetadataExtractor` and updated `LibraryView` to display and sort by BPM. Key detection is left as a future iteration due to complexity.
 
 ## Current State
 
@@ -70,9 +73,9 @@ Library supports search, sortable columns, multi-track selection, clear processi
 ## Pending Tasks
 
 - Add robust Error Handling and User Feedback mechanisms for FFmpeg integration if binary is missing.
-- Design and implement BPM and musical-key analysis.
 - Improve persistence scalability and add large-library performance coverage.
 - Design and implement the Waveform Preview for the Audio Player.
+- Refine Key Analysis if required.
 - Build production UI, accessibility, and broader test coverage.
 
 ## Technical Decisions
@@ -98,9 +101,8 @@ Library supports search, sortable columns, multi-track selection, clear processi
 - Persistent bookmarks are created from user-selected locations, but bookmark behavior has not yet been verified in a sandboxed, signed `.app` bundle.
 - AVFoundation metadata coverage differs by audio container; reading has not yet been validated against a broad real-world media corpus.
 - The bundled FFmpeg binary strategy requires the user to place an `ffmpeg` executable in the bundle Resources or `/opt/homebrew/bin/ffmpeg` path for operations to succeed.
-- No audio analysis (BPM/Key) is implemented yet.
 - Swift Package development setup is not a signed/distributable `.app` bundle yet.
 
 ## Next Recommended Step
 
-Test and refine the FFmpeg integration with actual test files, or move to Stage 8 (BPM and Musical-Key Analysis).
+Design and implement the Waveform Preview for the Audio Player, or add FFmpeg error handling mechanisms.

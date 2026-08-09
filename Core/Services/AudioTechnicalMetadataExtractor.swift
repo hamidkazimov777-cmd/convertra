@@ -11,6 +11,8 @@ struct AudioTechnicalMetadataResult: Sendable {
 /// Reads technical stream properties using AVFoundation. It intentionally does
 /// not perform BPM/key analysis or mutate media-file metadata.
 actor AudioTechnicalMetadataExtractor {
+    private let analyzer = AudioAnalyzerEngine()
+    
     func analyze(urls: [URL]) async -> [AudioTechnicalMetadataResult] {
         var results: [AudioTechnicalMetadataResult] = []
         results.reserveCapacity(urls.count)
@@ -43,7 +45,12 @@ actor AudioTechnicalMetadataExtractor {
             let streamDescription = formatDescription.flatMap(CMAudioFormatDescriptionGetStreamBasicDescription)
 
             let durationSeconds = CMTimeGetSeconds(duration)
+            
+            // Run advanced DSP analysis (BPM)
+            let advancedAnalysis = try? await analyzer.analyze(url: url)
+            
             let analysis = AudioAnalysis(
+                bpm: advancedAnalysis?.bpm.map { Double($0) },
                 duration: durationSeconds.isFinite && durationSeconds >= 0 ? durationSeconds : 0,
                 bitrate: estimatedDataRate > 0 ? Int(estimatedDataRate.rounded()) : nil,
                 sampleRate: streamDescription?.pointee.mSampleRate,

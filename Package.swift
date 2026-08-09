@@ -7,6 +7,7 @@ let package = Package(
     products: [
         .executable(name: "Convertra", targets: ["Convertra"])
     ],
+    dependencies: [],
     targets: [
         .executableTarget(
             name: "Convertra",
@@ -40,7 +41,8 @@ let package = Package(
                 "Core/Services/AudioMetadataWriter.swift",
                 "Core/Services/AudioConversionEngine.swift",
                 "Features/Conversion/ConversionQueueViewModel.swift",
-                "Features/Conversion/ConversionQueueView.swift"
+                "Features/Conversion/ConversionQueueView.swift",
+                "Core/Services/AudioAnalyzerEngine.swift"
             ]
         ),
         .testTarget(

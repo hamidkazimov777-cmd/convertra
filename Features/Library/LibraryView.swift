@@ -6,6 +6,7 @@ struct LibraryView: View {
         case title
         case artist
         case duration
+        case bpm
         case sampleRate
         case bitrate
         case codec
@@ -125,6 +126,8 @@ struct LibraryView: View {
                 .frame(width: 150, alignment: .leading)
             sortButton("Duration", column: .duration)
                 .frame(width: 70, alignment: .trailing)
+            sortButton("BPM", column: .bpm)
+                .frame(width: 50, alignment: .trailing)
             sortButton("Rate", column: .sampleRate)
                 .frame(width: 80, alignment: .trailing)
             sortButton("Bitrate", column: .bitrate)
@@ -158,6 +161,10 @@ struct LibraryView: View {
             Text(audioFile.displayDuration)
                 .monospacedDigit()
                 .frame(width: 70, alignment: .trailing)
+            Text(audioFile.analysis?.bpm.map { String(format: "%.0f", $0) } ?? "-")
+                .monospacedDigit()
+                .foregroundStyle(audioFile.analysis?.bpm == nil ? .secondary : .primary)
+                .frame(width: 50, alignment: .trailing)
             Text(audioFile.displaySampleRate)
                 .monospacedDigit()
                 .frame(width: 80, alignment: .trailing)
@@ -210,6 +217,8 @@ struct LibraryView: View {
             result = lhs.displayArtist.localizedCaseInsensitiveCompare(rhs.displayArtist)
         case .duration:
             result = compare(lhs.analysis?.duration ?? 0, rhs.analysis?.duration ?? 0)
+        case .bpm:
+            result = compare(lhs.analysis?.bpm ?? 0, rhs.analysis?.bpm ?? 0)
         case .sampleRate:
             result = compare(lhs.analysis?.sampleRate ?? 0, rhs.analysis?.sampleRate ?? 0)
         case .bitrate:
