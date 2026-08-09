@@ -25,11 +25,11 @@ DJs and music-library managers need reliable utilities that can handle deeply ne
 - Recursive discovery of WAV, AIFF, FLAC, ALAC, MP3, AAC, and M4A files.
 - Background library scanning through an isolated Swift actor.
 - Duplicate-path filtering and a live library list.
-- Unit coverage for recursive format discovery and the default MP3 conversion settings.
+- AVFoundation-backed duration, bitrate, sample-rate, channel-count, and codec extraction.
+- Unit coverage for recursive discovery, technical metadata extraction, and the default MP3 conversion settings.
 
 ### Planned
 
-- AVFoundation-backed duration, bitrate, sample-rate, channel, and codec extraction.
 - BPM and musical-key analysis.
 - Batch metadata editing, cover artwork, and persistence.
 - Built-in player with seeking, volume, and waveform preview.
@@ -80,7 +80,7 @@ Open `Package.swift` in Xcode to run the native SwiftUI app.
 
 ## Development status
 
-The current milestone establishes reliable library ingestion. The immediate next task is AVFoundation metadata extraction, which will populate each imported track with duration, bitrate, sample rate, channel count, and codec information.
+The current milestone establishes reliable ingestion and technical inspection. The immediate next task is a more capable Library UI: sortable columns, search, selection, and clearer processing feedback.
 
 For a detailed change log, design decisions, known limitations, and the next recommended task, see [handoff/HANDOFF.md](handoff/HANDOFF.md).
 

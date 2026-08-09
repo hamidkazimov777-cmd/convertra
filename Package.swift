@@ -13,7 +13,8 @@ let package = Package(
             path: ".",
             exclude: [
                 "Tests",
-                "handoff"
+                "handoff",
+                "README.md"
             ],
             sources: [
                 "App/ConvertraApp.swift",
@@ -22,6 +23,7 @@ let package = Package(
                 "Features/Library/LibraryView.swift",
                 "Core/Audio/SupportedAudioFormat.swift",
                 "Core/Services/AudioLibraryScanner.swift",
+                "Core/Services/AudioTechnicalMetadataExtractor.swift",
                 "Core/Models/AudioFile.swift",
                 "Core/Models/AudioMetadata.swift",
                 "Core/Models/AudioAnalysis.swift",

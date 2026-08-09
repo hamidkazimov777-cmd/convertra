@@ -26,9 +26,15 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var library: [AudioFile] = []
     @Published var isImporterPresented = false
     @Published private(set) var isScanningLibrary = false
+    @Published private(set) var isAnalyzingTechnicalMetadata = false
     @Published private(set) var libraryStatusMessage: String?
 
     private let libraryScanner = AudioLibraryScanner()
+    private let technicalMetadataExtractor = AudioTechnicalMetadataExtractor()
+
+    var isLibraryProcessing: Bool {
+        isScanningLibrary || isAnalyzingTechnicalMetadata
+    }
 
     var supportedFileTypesDescription: String {
         "WAV, AIFF, FLAC, ALAC, MP3, AAC, and M4A"
@@ -52,7 +58,7 @@ final class AppViewModel: ObservableObject {
             $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)
         }
 
-        guard !fileURLProviders.isEmpty, !isScanningLibrary else { return false }
+        guard !fileURLProviders.isEmpty, !isLibraryProcessing else { return false }
 
         Task { [weak self] in
             let urls = await fileURLProviders.asyncCompactMap { provider in
@@ -67,6 +73,11 @@ final class AppViewModel: ObservableObject {
         guard !urls.isEmpty else {
             libraryStatusMessage = "No accessible files or folders were provided."
             return
+        }
+
+        let scopedURLs = urls.filter { $0.startAccessingSecurityScopedResource() }
+        defer {
+            scopedURLs.forEach { $0.stopAccessingSecurityScopedResource() }
         }
 
         isScanningLibrary = true
@@ -84,9 +95,28 @@ final class AppViewModel: ObservableObject {
         let addedCount = newFiles.count
         if addedCount == 0 {
             libraryStatusMessage = "No new supported audio files found."
-        } else {
-            libraryStatusMessage = "Added \(addedCount) track\(addedCount == 1 ? "" : "s")."
+            return
         }
+
+        isAnalyzingTechnicalMetadata = true
+        libraryStatusMessage = "Reading technical metadata for \(addedCount) track\(addedCount == 1 ? "" : "s")…"
+        let analysisResults = await technicalMetadataExtractor.analyze(urls: newFiles.map(\.url))
+        let analysesByURL = Dictionary(
+            analysisResults.compactMap { result in
+                result.analysis.map { (result.url.standardizedFileURL, $0) }
+            },
+            uniquingKeysWith: { latest, _ in latest }
+        )
+
+        library = library.map { audioFile in
+            var updatedFile = audioFile
+            updatedFile.analysis = analysesByURL[audioFile.url.standardizedFileURL] ?? audioFile.analysis
+            return updatedFile
+        }
+        isAnalyzingTechnicalMetadata = false
+
+        let analyzedCount = analysesByURL.count
+        libraryStatusMessage = "Added \(addedCount) track\(addedCount == 1 ? "" : "s"). Read technical metadata for \(analyzedCount)."
     }
 
     private static func url(from provider: NSItemProvider) async -> URL? {

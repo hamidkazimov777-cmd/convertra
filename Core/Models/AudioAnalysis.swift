@@ -26,6 +26,29 @@ struct AudioAnalysis: Hashable, Sendable {
         self.channels = channels
         self.codec = codec
     }
+
+    var technicalSummary: String {
+        var components: [String] = []
+
+        if duration > 0 {
+            let roundedDuration = Int(duration.rounded())
+            components.append(String(format: "%d:%02d", roundedDuration / 60, roundedDuration % 60))
+        }
+        if let sampleRate {
+            components.append(String(format: "%.1f kHz", sampleRate / 1_000))
+        }
+        if let channels {
+            components.append("\(channels) ch")
+        }
+        if let bitrate {
+            components.append("\(Int((Double(bitrate) / 1_000).rounded())) kbps")
+        }
+        if codec != .unknown {
+            components.append(codec.rawValue.uppercased())
+        }
+
+        return components.joined(separator: " • ")
+    }
 }
 
 enum MusicalKey: String, CaseIterable, Codable, Hashable, Sendable {

@@ -28,11 +28,11 @@ struct LibraryView: View {
 
     private var emptyState: some View {
         VStack(spacing: 16) {
-            Image(systemName: appState.isScanningLibrary ? "magnifyingglass" : "waveform")
+            Image(systemName: appState.isLibraryProcessing ? "magnifyingglass" : "waveform")
                 .font(.system(size: 52, weight: .light))
                 .foregroundStyle(.secondary)
 
-            Text(appState.isScanningLibrary ? "Scanning your audio…" : "Your audio library is ready")
+            Text(appState.isLibraryProcessing ? "Preparing your audio…" : "Your audio library is ready")
                 .font(.title2.weight(.semibold))
 
             Text("Drop audio files or folders here, or choose them from Finder.")
@@ -42,7 +42,7 @@ struct LibraryView: View {
                 appState.presentImporter()
             }
                 .buttonStyle(.borderedProminent)
-                .disabled(appState.isScanningLibrary)
+                .disabled(appState.isLibraryProcessing)
 
             Text("Supported formats: \(appState.supportedFileTypesDescription)")
                 .font(.caption)
@@ -63,16 +63,16 @@ struct LibraryView: View {
                 Text("\(appState.library.count) track\(appState.library.count == 1 ? "" : "s")")
                     .font(.headline)
                 Spacer()
-                if appState.isScanningLibrary {
+                if appState.isLibraryProcessing {
                     ProgressView()
                         .controlSize(.small)
-                    Text("Scanning…")
+                    Text(appState.isAnalyzingTechnicalMetadata ? "Analyzing…" : "Scanning…")
                         .foregroundStyle(.secondary)
                 }
                 Button("Add Audio") {
                     appState.presentImporter()
                 }
-                    .disabled(appState.isScanningLibrary)
+                    .disabled(appState.isLibraryProcessing)
             }
             .padding()
 
@@ -96,6 +96,15 @@ struct LibraryView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                        if let analysis = audioFile.analysis, !analysis.technicalSummary.isEmpty {
+                            Text(analysis.technicalSummary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Technical metadata unavailable")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                     Spacer()
                     Text(audioFile.url.pathExtension.uppercased())
