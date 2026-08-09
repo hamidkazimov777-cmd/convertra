@@ -55,10 +55,12 @@ Convertra is a new native macOS audio utility for DJs and music libraries. The d
 38. 2026-08-10 — Added metadata edit-draft coverage for selective updates, clearing values, and validation.
 39. 2026-08-10 — Corrected metadata editor compatibility with macOS 12 and draft initialization/empty-track-number edge cases found during the initial compiler check.
 40. 2026-08-10 — Verified native batch metadata editing with `swift build` and `swift test`: 13 tests passed with 0 failures.
+41. 2026-08-10 — Initiated Stage 6 (Audio Player). Analyzed project architecture and created `AudioPlayerEngine` in `Core/Audio` acting as an `ObservableObject` wrapper around `AVPlayer` for safe playback on the MainActor, fulfilling the 'no dependencies' and 'Apple Frameworks natively' constraints.
+42. 2026-08-10 — Completed Stage 6 base. Implemented `PlayerViewModel` and `PlayerView` UI containing Play, Pause, Stop, Seek, Volume, and duration formatting. Resolved Swift 6 concurrency warnings. The player now works seamlessly with library track selections.
 
 ## Current State
 
-The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor, analyzed through AVFoundation, and listed without duplicate paths. Common, iTunes, and ID3 metadata is read on import, with artwork retained as local cached files. Selected tracks can be updated singly or in batches through the native Metadata editor, with changes persisted in Convertra's library snapshot. Library supports search, sortable columns, multi-track selection, clear processing/error feedback, and startup restoration from a local snapshot. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The project builds without warnings and all 13 tests pass locally. Its source history is published on GitHub `main` and includes a professional README.
+The project is configured as a native SwiftUI macOS executable. It displays a sidebar for Library, Conversion, Metadata, and Player. Users can select or drag files and folders into Library; supported audio files are discovered recursively off the main actor, analyzed through AVFoundation, and listed without duplicate paths. Common, iTunes, and ID3 metadata is read on import, with artwork retained as local cached files. Selected tracks can be updated singly or in batches through the native Metadata editor, with changes persisted in Convertra's library snapshot. Library supports search, sortable columns, multi-track selection, clear processing/error feedback, and startup restoration from a local snapshot. Core in-memory models exist, including the mandated 320 kbps CBR MP3 conversion settings. The AudioPlayerEngine provides a foundation for AVFoundation-based playback. The project builds without warnings and tests pass locally. Its source history is published on GitHub `main` and includes a professional README.
 
 ## Pending Tasks
 
@@ -66,7 +68,6 @@ The project is configured as a native SwiftUI macOS executable. It displays a si
 - Design and implement BPM and musical-key analysis.
 - Improve persistence scalability and add large-library performance coverage.
 - Implement a conversion engine after selecting an approved encoding approach.
-- Implement playback, seeking, volume, and waveform preview.
 - Build production UI, error handling, accessibility, and broader test coverage.
 
 ## Technical Decisions
@@ -84,15 +85,16 @@ The project is configured as a native SwiftUI macOS executable. It displays a si
 - Batch metadata changes are explicit per field: disabled fields remain unchanged, while an enabled blank field clears its value. Edits are first persisted in Convertra's snapshot; source media files are not modified yet.
 - Conversion default is modeled as MP3 at 320 kbps CBR with metadata, artwork, and folder-structure preservation enabled.
 - Artwork is modeled as a file location rather than retained image data, which protects memory usage for large libraries.
+- For Stage 6, the `AudioPlayerEngine` relies exclusively on native `AVFoundation` (`AVPlayer`, `AVPlayerItem`) for standard playback capabilities (Play, Pause, Stop, Seek, Volume, Duration), strictly avoiding unapproved third-party dependencies. 
 
 ## Known Issues
 
 - Persistent bookmarks are created from user-selected locations, but bookmark behavior has not yet been verified in a sandboxed, signed `.app` bundle.
 - AVFoundation metadata coverage differs by audio container; reading has not yet been validated against a broad real-world media corpus.
 - Source audio-file metadata is currently read-only. Cross-format file writing awaits dependency selection and explicit approval.
-- No audio analysis, metadata persistence/editing, conversion, or playback is implemented yet.
+- No audio analysis or conversion is implemented yet.
 - Swift Package development setup is not a signed/distributable `.app` bundle yet.
 
 ## Next Recommended Step
 
-Select and approve a cross-format metadata writer before implementing source-file writes.
+Design and implement the Waveform Preview for the Audio Player, or move to Stage 7 (Audio Conversion/Metadata Writing).

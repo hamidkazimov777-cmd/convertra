@@ -25,11 +25,7 @@ struct ContentView: View {
                 case .metadata:
                     MetadataEditorView()
                 case .player:
-                    FeaturePlaceholderView(
-                        title: "Player",
-                        message: "Playback controls and waveform preview will appear here.",
-                        image: "play.circle"
-                    )
+                    PlayerView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
