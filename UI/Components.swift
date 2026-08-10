@@ -32,6 +32,23 @@ struct GhostButtonStyle: ButtonStyle {
     }
 }
 
+struct DestructiveGhostButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.inter(size: 14, weight: .medium))
+            .foregroundStyle(.red)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(configuration.isPressed ? Color.red.opacity(0.2) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius)
+                    .strokeBorder(Color.red.opacity(0.5), lineWidth: 1)
+            )
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
 // MARK: - Text Field Styles
 
 struct SearchTextFieldStyle: TextFieldStyle {

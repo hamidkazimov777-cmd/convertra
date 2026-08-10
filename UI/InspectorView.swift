@@ -8,7 +8,6 @@ struct InspectorView: View {
     enum Tab {
         case info
         case metadata
-        case artwork
     }
     
     var body: some View {
@@ -17,7 +16,6 @@ struct InspectorView: View {
             HStack(spacing: 0) {
                 InspectorTabButton(title: "Info", isSelected: selectedTab == .info) { selectedTab = .info }
                 InspectorTabButton(title: "Metadata", isSelected: selectedTab == .metadata) { selectedTab = .metadata }
-                InspectorTabButton(title: "Artwork", isSelected: selectedTab == .artwork) { selectedTab = .artwork }
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
@@ -37,8 +35,6 @@ struct InspectorView: View {
                             InspectorInfoTab()
                         case .metadata:
                             InspectorMetadataTab()
-                        case .artwork:
-                            InspectorArtworkTab()
                         }
                     }
                     .padding(16)
@@ -145,12 +141,17 @@ struct InspectorMetadataTab: View {
             MetadataTextField(label: "Composer", field: binding(\.composer))
             MetadataTextField(label: "ISRC", field: binding(\.isrc))
             
+            Text("Changes will be written to the original audio file.")
+                .font(.inter(size: 10))
+                .foregroundStyle(Theme.Colors.textMuted)
+                .multilineTextAlignment(.center)
+            
             Button("Save Metadata") {
                 appState.applyMetadataEditDraft()
             }
             .buttonStyle(AccentButtonStyle())
             .frame(maxWidth: .infinity)
-            .padding(.top, 16)
+            .padding(.top, 4)
         }
         .onAppear(perform: appState.prepareMetadataEditDraft)
         .onChange(of: appState.selectedAudioFileIDs) { _ in
@@ -166,14 +167,7 @@ struct InspectorMetadataTab: View {
     }
 }
 
-struct InspectorArtworkTab: View {
-    var body: some View {
-        VStack {
-            Text("Artwork Editor")
-                .foregroundStyle(Theme.Colors.textSecondary)
-        }
-    }
-}
+
 
 // MARK: - Components
 

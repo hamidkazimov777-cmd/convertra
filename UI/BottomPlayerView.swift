@@ -21,52 +21,54 @@ struct BottomPlayerView: View {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Theme.Colors.bgPrimary)
                     
-                    if viewModel.isGeneratingWaveform {
-                        ProgressView().controlSize(.small)
-                    } else if !viewModel.waveformData.isEmpty {
-                        GeometryReader { geo in
-                            let progress = viewModel.duration > 0 ? CGFloat(viewModel.currentPosition / viewModel.duration) : 0
-                            
-                            ZStack(alignment: .leading) {
-                                WaveformShape(samples: viewModel.waveformData)
-                                    .fill(Theme.Colors.bgHover)
+                    if viewModel.currentTrack != nil {
+                        if viewModel.isGeneratingWaveform {
+                            ProgressView().controlSize(.small)
+                        } else if !viewModel.waveformData.isEmpty {
+                            GeometryReader { geo in
+                                let progress = viewModel.duration > 0 ? CGFloat(viewModel.currentPosition / viewModel.duration) : 0
                                 
-                                WaveformShape(samples: viewModel.waveformData)
-                                    .fill(Theme.Colors.accentPrimary)
-                                    .mask(
-                                        Rectangle()
-                                            .frame(width: geo.size.width * progress)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    )
-                                    .animation(.linear(duration: 0.1), value: progress)
+                                ZStack(alignment: .leading) {
+                                    WaveformShape(samples: viewModel.waveformData)
+                                        .fill(Theme.Colors.bgHover)
+                                    
+                                    WaveformShape(samples: viewModel.waveformData)
+                                        .fill(Theme.Colors.accentPrimary)
+                                        .mask(
+                                            Rectangle()
+                                                .frame(width: geo.size.width * progress)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        )
+                                        .animation(.linear(duration: 0.1), value: progress)
+                                }
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { value in
+                                            let percentage = max(0, min(1, value.location.x / geo.size.width))
+                                            viewModel.seek(to: viewModel.duration * Double(percentage))
+                                        }
+                                )
                             }
-                            .contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .onChanged { value in
-                                        let percentage = max(0, min(1, value.location.x / geo.size.width))
-                                        viewModel.seek(to: viewModel.duration * Double(percentage))
-                                    }
-                            )
+                        } else {
+                            // Fallback if waveform is missing but track is loaded
+                            Path { path in
+                                path.move(to: CGPoint(x: 0, y: 20))
+                                path.addLine(to: CGPoint(x: 1000, y: 20))
+                            }
+                            .stroke(Theme.Colors.textMuted, style: StrokeStyle(lineWidth: 1, dash: [2]))
                         }
-                    } else {
-                        // Empty state / line
-                        Path { path in
-                            path.move(to: CGPoint(x: 0, y: 20))
-                            path.addLine(to: CGPoint(x: 1000, y: 20))
+                        
+                        // Time overlays
+                        HStack {
+                            Text(formatTime(viewModel.currentPosition))
+                            Spacer()
+                            Text(formatTime(viewModel.duration))
                         }
-                        .stroke(Theme.Colors.textMuted, style: StrokeStyle(lineWidth: 1, dash: [2]))
+                        .font(.inter(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .padding(.horizontal, 8)
                     }
-                    
-                    // Time overlays
-                    HStack {
-                        Text(formatTime(viewModel.currentPosition))
-                        Spacer()
-                        Text(formatTime(viewModel.duration))
-                    }
-                    .font(.inter(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .padding(.horizontal, 8)
                 }
                 .frame(height: 40)
                 
@@ -89,6 +91,16 @@ struct BottomPlayerView: View {
         .background(Theme.Colors.bgBase)
         .onChange(of: appState.selectedAudioFileIDs) { _ in
             viewModel.handleSelectionChange(selectedFiles: appState.selectedAudioFiles)
+        }
+        .onChange(of: appState.requestedPlaybackTrackID) { newID in
+            if newID != nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    viewModel.play()
+                }
+            }
+        }
+        .onChange(of: appState.playbackToggleTrigger) { _ in
+            viewModel.togglePlayback()
         }
         .onAppear {
             viewModel.handleSelectionChange(selectedFiles: appState.selectedAudioFiles)

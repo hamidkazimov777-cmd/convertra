@@ -38,8 +38,22 @@ struct ConversionJob: Identifiable, Hashable, Sendable {
 }
 
 struct ConversionSettings: Hashable, Sendable {
-    enum OutputFormat: String, Hashable, Sendable {
+    enum OutputFormat: String, Hashable, Sendable, CaseIterable, Identifiable {
         case mp3
+        case wav
+        case flac
+        case aiff
+        
+        var id: String { rawValue }
+        
+        var displayName: String {
+            switch self {
+            case .mp3: return "MP3"
+            case .wav: return "WAV"
+            case .flac: return "FLAC"
+            case .aiff: return "AIFF"
+            }
+        }
     }
 
     enum BitrateMode: Hashable, Sendable {

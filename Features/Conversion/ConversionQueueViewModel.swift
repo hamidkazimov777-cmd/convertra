@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 final class ConversionQueueViewModel: ObservableObject {
     @Published private(set) var jobs: [ConversionJob] = []
+    @Published var selectedTargetFormat: ConversionSettings.OutputFormat = .mp3
     
     private let engine = AudioConversionEngine()
     

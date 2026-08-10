@@ -90,6 +90,10 @@ final class PlayerViewModel: ObservableObject {
         }
     }
     
+    func play() {
+        engine.play()
+    }
+    
     func stop() {
         engine.stop()
     }

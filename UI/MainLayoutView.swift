@@ -23,16 +23,8 @@ struct MainLayoutView: View {
                             switch appState.selectedSection ?? .library {
                             case .library:
                                 LibraryView()
-                            case .metadata:
-                                MetadataEditorView()
                             case .conversion:
                                 ConversionQueueView()
-                            default:
-                                VStack {
-                                    Text("Coming Soon")
-                                        .foregroundStyle(Theme.Colors.textSecondary)
-                                }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                             }
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

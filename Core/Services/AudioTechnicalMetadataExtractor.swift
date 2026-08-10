@@ -11,7 +11,8 @@ struct AudioTechnicalMetadataResult: Sendable {
 /// Reads technical stream properties using AVFoundation. It intentionally does
 /// not perform BPM/key analysis or mutate media-file metadata.
 actor AudioTechnicalMetadataExtractor {
-    private let analyzer = AudioAnalyzerEngine()
+    private let engine2 = AudioAnalysisEngine2()
+    private let legacyAnalyzer = AudioAnalyzerEngine()
     
     func analyze(urls: [URL]) async -> [AudioTechnicalMetadataResult] {
         var results: [AudioTechnicalMetadataResult] = []
@@ -45,19 +46,42 @@ actor AudioTechnicalMetadataExtractor {
             let streamDescription = formatDescription.flatMap(CMAudioFormatDescriptionGetStreamBasicDescription)
 
             let durationSeconds = CMTimeGetSeconds(duration)
+            let validDuration = durationSeconds.isFinite && durationSeconds >= 0 ? durationSeconds : 0
+            let bitrate = estimatedDataRate > 0 ? Int(estimatedDataRate.rounded()) : nil
+            let sampleRate = streamDescription?.pointee.mSampleRate
+            let channels = streamDescription.map { Int($0.pointee.mChannelsPerFrame) }
+            let detectedCodec = codec(for: url, formatDescription: formatDescription)
             
-            // Run advanced DSP analysis (BPM)
-            let advancedAnalysis = try? await analyzer.analyze(url: url)
-            
-            let analysis = AudioAnalysis(
-                bpm: advancedAnalysis?.bpm.map { Double($0) },
-                musicalKey: advancedAnalysis?.key.flatMap { MusicalKey(rawValue: $0) },
-                duration: durationSeconds.isFinite && durationSeconds >= 0 ? durationSeconds : 0,
-                bitrate: estimatedDataRate > 0 ? Int(estimatedDataRate.rounded()) : nil,
-                sampleRate: streamDescription?.pointee.mSampleRate,
-                channels: streamDescription.map { Int($0.pointee.mChannelsPerFrame) },
-                codec: codec(for: url, formatDescription: formatDescription)
-            )
+            // Primary path: AudioAnalysisEngine2
+            let analysis: AudioAnalysis
+            if let result2 = try? await engine2.analyze(url: url) {
+                analysis = AudioAnalysis2Adapter.adapt(
+                    result: result2,
+                    bitrate: bitrate,
+                    sampleRate: sampleRate,
+                    channels: channels,
+                    codec: detectedCodec
+                )
+            } else if let legacyAnalysis = try? await legacyAnalyzer.analyze(url: url) {
+                // Fallback path: Legacy AudioAnalyzerEngine
+                analysis = AudioAnalysis(
+                    bpm: legacyAnalysis.bpm.map { Double($0) },
+                    musicalKey: legacyAnalysis.key.flatMap { MusicalKey(rawValue: $0) },
+                    duration: validDuration,
+                    bitrate: bitrate,
+                    sampleRate: sampleRate,
+                    channels: channels,
+                    codec: detectedCodec
+                )
+            } else {
+                analysis = AudioAnalysis(
+                    duration: validDuration,
+                    bitrate: bitrate,
+                    sampleRate: sampleRate,
+                    channels: channels,
+                    codec: detectedCodec
+                )
+            }
 
             return AudioTechnicalMetadataResult(url: url, analysis: analysis)
         } catch {

@@ -21,6 +21,41 @@ final class AudioTechnicalMetadataExtractorTests: XCTestCase {
         XCTAssertEqual(analysis.duration, 1, accuracy: 0.02)
     }
 
+    func testAudioAnalysis2AdapterMapsEngine2ResultsCorrectly() {
+        let result2 = AudioAnalysisResult2(
+            url: URL(fileURLWithPath: "/tmp/test.wav"),
+            durationSeconds: 180.5,
+            bpm: 124.0,
+            bpmConfidence: 0.95,
+            musicalKey: .cMinor,
+            camelotKey: CamelotKey(number: 5, mode: .a)!,
+            keyConfidence: 0.88,
+            overallConfidence: 0.915,
+            beatGrid: BeatGrid(bpm: 124.0, beats: [], confidence: 0.95),
+            downbeatResult: DownbeatResult(downbeatFrameIndex: 0, downbeatTimeSeconds: 0.0, confidence: 0.9),
+            segmentFusionResult: FusedTempoResult(bpm: 124.0, bpmConfidence: 0.95, introBPM: 124.0, bodyABPM: 124.0, bodyBBPM: 124.0, outroBPM: 124.0)
+        )
+
+        let analysis = AudioAnalysis2Adapter.adapt(
+            result: result2,
+            bitrate: 320_000,
+            sampleRate: 44_100,
+            channels: 2,
+            codec: .mp3
+        )
+
+        XCTAssertEqual(analysis.bpm, 124.0)
+        XCTAssertEqual(analysis.musicalKey, .cMinor)
+        XCTAssertEqual(analysis.camelotKey, CamelotKey(number: 5, mode: .a)!)
+        XCTAssertEqual(analysis.bpmConfidence, 0.95)
+        XCTAssertEqual(analysis.keyConfidence, 0.88)
+        XCTAssertEqual(analysis.duration, 180.5)
+        XCTAssertEqual(analysis.bitrate, 320_000)
+        XCTAssertEqual(analysis.sampleRate, 44_100)
+        XCTAssertEqual(analysis.channels, 2)
+        XCTAssertEqual(analysis.codec, .mp3)
+    }
+
     private func makeOneSecondStereoWAV() -> Data {
         let sampleRate: UInt32 = 44_100
         let channels: UInt16 = 2

@@ -109,32 +109,99 @@ struct DropZoneView: View {
 
 struct LibraryToolbarView: View {
     @Binding var searchText: String
+    @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
     
     var body: some View {
         HStack(spacing: 16) {
-            // View Toggles Placeholder
-            HStack(spacing: 0) {
-                Image(systemName: "list.bullet")
-                    .padding(6)
-                    .background(Theme.Colors.bgSelected)
-                Image(systemName: "square.grid.2x2")
-                    .padding(6)
-            }
-            .font(.inter(size: 12))
-            .foregroundStyle(Theme.Colors.textPrimary)
-            .cornerRadius(4)
-            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Theme.Colors.border, lineWidth: 1))
             
-            Spacer()
-            
-            // Filters Placeholder
-            HStack(spacing: 12) {
-                Text("All Formats ▾")
-                Text("All Keys ▾")
-                Text("All BPM ▾")
+            if appState.isSelectionModeActive || appState.selectedAudioFileCount > 1 {
+                // Multi-Selection Toolbar
+                Text("\(appState.selectedAudioFileCount) selected")
+                    .font(.inter(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.Colors.accentPrimary)
+                    .fixedSize(horizontal: true, vertical: false)
+                
+                HStack(spacing: 8) {
+                    Text("Format:")
+                        .font(.inter(size: 12))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .fixedSize(horizontal: true, vertical: false)
+                    
+                    Picker("", selection: $conversionQueue.selectedTargetFormat) {
+                        ForEach(ConversionSettings.OutputFormat.allCases) { format in
+                            Text(format.displayName).tag(format)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 80)
+                }
+                
+                Button("Convert Selected") {
+                    let settings = ConversionSettings(
+                        outputFormat: conversionQueue.selectedTargetFormat,
+                        bitrate: .constant(kilobitsPerSecond: 320),
+                        preserveMetadata: true,
+                        preserveArtwork: true,
+                        preserveFolderStructure: true
+                    )
+                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: settings)
+                    appState.selectedSection = .conversion
+                }
+                .buttonStyle(AccentButtonStyle())
+                .disabled(appState.selectedAudioFileIDs.isEmpty)
+                
+                Button("Reveal Selected") {
+                    let urls = appState.selectedAudioFiles.map { $0.url }
+                    NSWorkspace.shared.activateFileViewerSelecting(urls)
+                }
+                .buttonStyle(GhostButtonStyle())
+                .disabled(appState.selectedAudioFileIDs.isEmpty)
+                
+                Button("Delete Selected") {
+                    if !appState.selectedAudioFileIDs.isEmpty {
+                        appState.isDeleteConfirmationPresented = true
+                    }
+                }
+                .buttonStyle(DestructiveGhostButtonStyle())
+                .disabled(appState.selectedAudioFileIDs.isEmpty)
+                
+                Button("Cancel") {
+                    appState.deselectAll()
+                }
+                .buttonStyle(GhostButtonStyle())
+                
+            } else {
+                // Single/Empty Toolbar
+                HStack(spacing: 8) {
+                    Text("Format:")
+                        .font(.inter(size: 12))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .fixedSize(horizontal: true, vertical: false)
+                    
+                    Picker("", selection: $conversionQueue.selectedTargetFormat) {
+                        ForEach(ConversionSettings.OutputFormat.allCases) { format in
+                            Text(format.displayName).tag(format)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 80)
+                }
+                
+                Button("Convert Selected") {
+                    let settings = ConversionSettings(
+                        outputFormat: conversionQueue.selectedTargetFormat,
+                        bitrate: .constant(kilobitsPerSecond: 320),
+                        preserveMetadata: true,
+                        preserveArtwork: true,
+                        preserveFolderStructure: true
+                    )
+                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: settings)
+                    appState.selectedSection = .conversion
+                }
+                .buttonStyle(AccentButtonStyle())
+                .disabled(appState.selectedAudioFileIDs.isEmpty)
             }
-            .font(.inter(size: 12))
-            .foregroundStyle(Theme.Colors.textSecondary)
             
             Spacer()
             
@@ -165,6 +232,13 @@ struct TrackListView: View {
         VStack(spacing: 0) {
             // Header
             HStack(spacing: 12) {
+                if appState.isSelectionModeActive {
+                    Image(systemName: "checkmark.square.fill")
+                        .foregroundStyle(Color.clear)
+                        .frame(width: 16)
+                        .transition(.move(edge: .leading).combined(with: .opacity))
+                }
+                
                 Text("#").frame(width: 30, alignment: .leading)
                 Text("Artwork").frame(width: 50, alignment: .center)
                 Text("Title").frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
@@ -174,7 +248,6 @@ struct TrackListView: View {
                 Text("Time").frame(width: 60, alignment: .trailing)
                 Text("Format").frame(width: 60, alignment: .trailing)
                 Text("Size").frame(width: 60, alignment: .trailing)
-                Text("").frame(width: 20)
             }
             .font(.inter(size: 11, weight: .bold))
             .foregroundStyle(Theme.Colors.textMuted)
@@ -198,8 +271,53 @@ struct TrackListView: View {
                                 file: file,
                                 isSelected: appState.selectedAudioFileIDs.contains(file.id)
                             )
-                            .onTapGesture {
+                            .contentShape(Rectangle())
+                            .simultaneousGesture(TapGesture(count: 2).onEnded {
                                 appState.selectedAudioFileIDs = [file.id]
+                                appState.requestedPlaybackTrackID = file.id
+                            })
+                            .simultaneousGesture(TapGesture(count: 1).onEnded {
+                                let flags = NSEvent.modifierFlags
+                                if flags.contains(.command) {
+                                    appState.toggleSelection(for: file.id)
+                                } else if flags.contains(.shift) {
+                                    appState.selectRange(from: appState.lastSelectedTrackID, to: file.id, in: filteredLibrary)
+                                } else {
+                                    if appState.isSelectionModeActive {
+                                        appState.toggleSelection(for: file.id)
+                                    } else {
+                                        appState.selectedAudioFileIDs = [file.id]
+                                        appState.lastSelectedTrackID = file.id
+                                    }
+                                }
+                            })
+                            .contextMenu {
+                                Button("Play") {
+                                    appState.selectedAudioFileIDs = [file.id]
+                                    appState.requestedPlaybackTrackID = file.id
+                                }
+                                Button("Reveal in Finder") {
+                                    NSWorkspace.shared.activateFileViewerSelecting([file.url])
+                                }
+                                Divider()
+                                Button("Select") {
+                                    appState.isSelectionModeActive = true
+                                    appState.selectedAudioFileIDs = [file.id]
+                                    appState.lastSelectedTrackID = file.id
+                                }
+                                Button("Select All") {
+                                    appState.selectAll(in: filteredLibrary)
+                                }
+                                Button("Deselect All") {
+                                    appState.deselectAll()
+                                }
+                                Divider()
+                                Button("Remove from Library") {
+                                    if !appState.selectedAudioFileIDs.contains(file.id) {
+                                        appState.selectedAudioFileIDs = [file.id]
+                                    }
+                                    appState.isDeleteConfirmationPresented = true
+                                }
                             }
                             Divider().background(Theme.Colors.border.opacity(0.5))
                         }
@@ -222,6 +340,44 @@ struct TrackListView: View {
             .padding(.vertical, 8)
             .background(Theme.Colors.bgBase)
         }
+        .alert("Remove Tracks", isPresented: $appState.isDeleteConfirmationPresented) {
+            Button("Cancel", role: .cancel) { }
+            Button("Remove", role: .destructive) {
+                appState.removeSelectedTracks()
+            }
+        } message: {
+            Text("Are you sure you want to remove the selected \(appState.selectedAudioFileCount) tracks from the library?")
+        }
+        .background(
+            ZStack {
+                // Hidden button to catch Delete key
+                Button("") {
+                    if !appState.selectedAudioFileIDs.isEmpty {
+                        appState.isDeleteConfirmationPresented = true
+                    }
+                }
+                .keyboardShortcut(.delete, modifiers: [])
+                
+                // Play/Pause on Space
+                Button("") {
+                    appState.playbackToggleTrigger = UUID()
+                }
+                .keyboardShortcut(.space, modifiers: [])
+                
+                // Up Arrow
+                Button("") {
+                    appState.selectPreviousTrack()
+                }
+                .keyboardShortcut(.upArrow, modifiers: [])
+                
+                // Down Arrow
+                Button("") {
+                    appState.selectNextTrack()
+                }
+                .keyboardShortcut(.downArrow, modifiers: [])
+            }
+            .opacity(0)
+        )
     }
 }
 
@@ -234,9 +390,20 @@ struct TrackRowView: View {
     
     @State private var isHovered = false
     @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
+    @EnvironmentObject private var appState: AppViewModel
     
     var body: some View {
         HStack(spacing: 12) {
+            if appState.isSelectionModeActive {
+                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                    .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : Theme.Colors.textMuted)
+                    .frame(width: 16)
+                    .onTapGesture {
+                        appState.toggleSelection(for: file.id)
+                    }
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+            }
+            
             Text("\(index)")
                 .frame(width: 30, alignment: .leading)
                 .foregroundStyle(Theme.Colors.textMuted)
@@ -280,16 +447,11 @@ struct TrackRowView: View {
                 .lineLimit(1)
             
             // Key Badge
-            Text(file.analysis?.musicalKey?.rawValue ?? "-")
-                .font(.inter(size: 10, weight: .bold))
-                .foregroundStyle(file.analysis?.musicalKey == nil ? Theme.Colors.textMuted : Theme.Colors.bgBase)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(file.analysis?.musicalKey == nil ? Color.clear : Theme.Colors.accentPrimary)
-                )
-                .frame(width: 50, alignment: .leading)
+            CamelotBadgeView(
+                camelotKey: file.analysis?.camelotKey ?? file.analysis?.musicalKey?.camelotKey,
+                isCompact: true
+            )
+            .frame(width: 50, alignment: .leading)
             
             Text(file.analysis?.bpm.map { String(format: "%.0f", $0) } ?? "-")
                 .frame(width: 50, alignment: .trailing)
@@ -306,10 +468,6 @@ struct TrackRowView: View {
             
             Text(formatSize(getFileSize(file.url)))
                 .frame(width: 60, alignment: .trailing)
-                .foregroundStyle(Theme.Colors.textMuted)
-            
-            Image(systemName: "ellipsis")
-                .frame(width: 20)
                 .foregroundStyle(Theme.Colors.textMuted)
         }
         .font(.inter(size: 13))

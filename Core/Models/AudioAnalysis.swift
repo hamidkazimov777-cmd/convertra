@@ -3,6 +3,9 @@ import Foundation
 struct AudioAnalysis: Codable, Hashable, Sendable {
     var bpm: Double?
     var musicalKey: MusicalKey?
+    var camelotKey: CamelotKey?
+    var bpmConfidence: Double
+    var keyConfidence: Double
     var duration: TimeInterval
     var bitrate: Int?
     var sampleRate: Double?
@@ -12,6 +15,9 @@ struct AudioAnalysis: Codable, Hashable, Sendable {
     init(
         bpm: Double? = nil,
         musicalKey: MusicalKey? = nil,
+        camelotKey: CamelotKey? = nil,
+        bpmConfidence: Double = 0.0,
+        keyConfidence: Double = 0.0,
         duration: TimeInterval = 0,
         bitrate: Int? = nil,
         sampleRate: Double? = nil,
@@ -20,11 +26,18 @@ struct AudioAnalysis: Codable, Hashable, Sendable {
     ) {
         self.bpm = bpm
         self.musicalKey = musicalKey
+        self.camelotKey = camelotKey ?? musicalKey?.camelotKey
+        self.bpmConfidence = bpmConfidence
+        self.keyConfidence = keyConfidence
         self.duration = duration
         self.bitrate = bitrate
         self.sampleRate = sampleRate
         self.channels = channels
         self.codec = codec
+    }
+
+    var overallConfidence: Double {
+        (bpmConfidence + keyConfidence) / 2.0
     }
 
     var technicalSummary: String {
@@ -64,6 +77,20 @@ enum MusicalKey: String, CaseIterable, Codable, Hashable, Sendable {
     case aMajor = "A Major", aMinor = "A Minor"
     case aSharpMajor = "A♯ Major", aSharpMinor = "A♯ Minor"
     case bMajor = "B Major", bMinor = "B Minor"
+
+    // Enharmonic aliases
+    static var aFlatMinor: MusicalKey { .gSharpMinor }
+    static var eFlatMinor: MusicalKey { .dSharpMinor }
+    static var bFlatMinor: MusicalKey { .aSharpMinor }
+    static var gFlatMajor: MusicalKey { .fSharpMajor }
+    static var dFlatMajor: MusicalKey { .cSharpMajor }
+    static var aFlatMajor: MusicalKey { .gSharpMajor }
+    static var eFlatMajor: MusicalKey { .dSharpMajor }
+    static var bFlatMajor: MusicalKey { .aSharpMajor }
+
+    var camelotKey: CamelotKey {
+        CamelotKey(musicalKey: self)
+    }
 }
 
 enum AudioCodec: String, CaseIterable, Codable, Hashable, Sendable {

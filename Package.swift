@@ -15,9 +15,11 @@ let package = Package(
             exclude: [
                 "Tests",
                 "handoff",
+                "handoff.md",
                 "README.md",
                 "HANDOFF.md",
-                "package_app.sh"
+                "package_app.sh",
+                "Entitlements.plist"
             ],
             sources: [
                 "App/ConvertraApp.swift",
@@ -42,6 +44,7 @@ let package = Package(
                 "Core/Models/AudioMetadata.swift",
                 "Core/Models/MetadataEditDraft.swift",
                 "Core/Models/AudioAnalysis.swift",
+                "Core/Models/CamelotKey.swift",
                 "Core/Models/ConversionJob.swift",
                 "Core/Models/CoreDataModel.swift",
                 "Core/Audio/AudioPlayerEngine.swift",
@@ -52,7 +55,24 @@ let package = Package(
                 "Core/Services/WaveformAnalyzer.swift",
                 "Features/Conversion/ConversionQueueViewModel.swift",
                 "Features/Conversion/ConversionQueueView.swift",
-                "Core/Services/AudioAnalyzerEngine.swift"
+                "Core/Services/AudioAnalyzerEngine.swift",
+                "Core/Services/Analysis/AudioDecoder.swift",
+                "Core/Services/Analysis/SignalPreprocessor.swift",
+                "Core/Services/Analysis/TempoDetector.swift",
+                "Core/Services/Analysis/BeatTracker.swift",
+                "Core/Services/Analysis/PhaseAligner.swift",
+                "Core/Services/Analysis/DownbeatDetector.swift",
+                "Core/Services/Analysis/SegmentFusion.swift",
+                "Core/Services/Analysis/KeyDetector.swift",
+                "Core/Services/Analysis/CamelotMapper.swift",
+                "Core/Services/Analysis/Benchmark/BenchmarkModels.swift",
+                "Core/Services/Analysis/Benchmark/ReferenceNormalizer.swift",
+                "Core/Services/Analysis/Benchmark/ReferenceDataImporter.swift",
+                "Core/Services/Analysis/Benchmark/RealAudioBenchmarkRunner.swift",
+                "Core/Services/Analysis/AudioAnalysisEngine2.swift",
+                "Core/Services/Analysis/AudioAnalysis2Adapter.swift",
+                "Features/Library/Views/CamelotBadgeView.swift",
+                "Features/Library/Views/TrackInspectorView.swift"
             ],
             resources: [
                 .process("Resources")

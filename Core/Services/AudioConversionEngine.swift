@@ -24,6 +24,12 @@ actor AudioConversionEngine {
         switch job.settings.outputFormat {
         case .mp3:
             arguments.append(contentsOf: ["-codec:a", "libmp3lame"])
+        case .wav:
+            arguments.append(contentsOf: ["-codec:a", "pcm_s16le"])
+        case .flac:
+            arguments.append(contentsOf: ["-codec:a", "flac"])
+        case .aiff:
+            arguments.append(contentsOf: ["-codec:a", "pcm_s16be"])
         }
         
         switch job.settings.bitrate {

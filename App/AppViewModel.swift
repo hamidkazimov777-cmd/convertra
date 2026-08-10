@@ -18,7 +18,6 @@ final class AppViewModel: ObservableObject {
     enum Section: String, CaseIterable, Identifiable {
         case library = "Library"
         case conversion = "Conversion"
-        case metadata = "Metadata"
 
         var id: Self { self }
 
@@ -26,7 +25,6 @@ final class AppViewModel: ObservableObject {
             switch self {
             case .library: return "music.note.list"
             case .conversion: return "arrow.triangle.2.circlepath"
-            case .metadata: return "tag"
             }
         }
     }
@@ -34,6 +32,10 @@ final class AppViewModel: ObservableObject {
     @Published var selectedSection: Section? = .library
     @Published private(set) var library: [AudioFile] = []
     @Published var selectedAudioFileIDs = Set<AudioFile.ID>()
+    @Published var isSelectionModeActive = false
+    @Published var lastSelectedTrackID: AudioFile.ID?
+    @Published var requestedPlaybackTrackID: AudioFile.ID?
+    @Published var playbackToggleTrigger: UUID = UUID()
     @Published var metadataEditDraft = MetadataEditDraft()
     @Published var isImporterPresented = false
     @Published private(set) var isRestoringLibrary = true
@@ -44,6 +46,7 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var libraryStatus: LibraryStatus?
     @Published var isLibraryErrorPresented = false
     @Published private(set) var libraryErrorMessage = ""
+    @Published var isDeleteConfirmationPresented = false
 
     private let libraryScanner = AudioLibraryScanner()
     private let technicalMetadataExtractor = AudioTechnicalMetadataExtractor()
@@ -96,6 +99,8 @@ final class AppViewModel: ObservableObject {
 
     func clearLibrarySelection() {
         selectedAudioFileIDs.removeAll()
+        isSelectionModeActive = false
+        lastSelectedTrackID = nil
     }
     
     func selectNextTrack() {
@@ -129,15 +134,61 @@ final class AppViewModel: ObservableObject {
         }
         
         selectedAudioFileIDs.removeAll()
+        isSelectionModeActive = false
+        lastSelectedTrackID = nil
         Task { await persistLibrary() }
     }
     
     func clearLibrary() {
         library.removeAll()
         selectedAudioFileIDs.removeAll()
+        isSelectionModeActive = false
+        lastSelectedTrackID = nil
         sourceBookmarks.removeAll()
         trackBookmarks.removeAll()
         Task { await persistLibrary() }
+    }
+    
+    // MARK: - Multi-Selection Logic
+    
+    func toggleSelection(for id: AudioFile.ID) {
+        if selectedAudioFileIDs.contains(id) {
+            selectedAudioFileIDs.remove(id)
+        } else {
+            selectedAudioFileIDs.insert(id)
+            lastSelectedTrackID = id
+        }
+    }
+    
+    func selectRange(from startID: AudioFile.ID?, to endID: AudioFile.ID, in filteredLibrary: [AudioFile]) {
+        guard let start = startID,
+              let startIndex = filteredLibrary.firstIndex(where: { $0.id == start }),
+              let endIndex = filteredLibrary.firstIndex(where: { $0.id == endID }) else {
+            // Fallback to normal selection if start ID is lost
+            selectedAudioFileIDs = [endID]
+            lastSelectedTrackID = endID
+            return
+        }
+        
+        let range = min(startIndex, endIndex)...max(startIndex, endIndex)
+        let idsToSelect = filteredLibrary[range].map { $0.id }
+        
+        // Add range to existing selection to match Finder behavior
+        for id in idsToSelect {
+            selectedAudioFileIDs.insert(id)
+        }
+        lastSelectedTrackID = endID
+    }
+    
+    func selectAll(in filteredLibrary: [AudioFile]) {
+        let allIDs = filteredLibrary.map { $0.id }
+        selectedAudioFileIDs = Set(allIDs)
+    }
+    
+    func deselectAll() {
+        selectedAudioFileIDs.removeAll()
+        isSelectionModeActive = false
+        lastSelectedTrackID = nil
     }
 
     func prepareMetadataEditDraft() {

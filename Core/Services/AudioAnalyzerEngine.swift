@@ -77,39 +77,54 @@ actor AudioAnalyzerEngine {
             diff[i] = max(0, d) // Half-wave rectification
         }
         
-        // 5. Peak picking
-        var peaks: [Int] = []
-        let threshold: Float = 0.05 // Adjust based on dynamic range
-        for i in 1..<(numWindows - 1) {
-            if diff[i] > diff[i - 1] && diff[i] > diff[i + 1] && diff[i] > threshold {
-                peaks.append(i)
+        // 5. Autocorrelation Function (ACF) to find true periodicity
+        let numWindowsFloat = Float(numWindows)
+        let minBPM: Float = 70.0
+        let maxBPM: Float = 200.0
+        let centerBPM: Float = 120.0 // Tempo Prior Center (Aubio default)
+        
+        let minLag = Int(targetRate * 60.0 / maxBPM)
+        let maxLag = Int(targetRate * 60.0 / minBPM)
+        
+        guard maxLag < diff.count else { return nil }
+        
+        var bestLag = 0
+        var maxScore: Float = -1.0
+        
+        // Compute ACF for lags corresponding to 70-200 BPM
+        for lag in minLag...maxLag {
+            var sum: Float = 0
+            let elementsToProcess = numWindows - lag
+            
+            // vDSP Dot Product for Autocorrelation
+            diff.withUnsafeBufferPointer { ptr in
+                vDSP_dotpr(ptr.baseAddress!, 1, ptr.baseAddress! + lag, 1, &sum, vDSP_Length(elementsToProcess))
+            }
+            
+            // Normalize sum by the number of elements (unbiased ACF)
+            let normalizedSum = sum / Float(elementsToProcess)
+            
+            // Calculate corresponding BPM for this lag
+            let bpm = 60.0 / (Float(lag) / targetRate)
+            
+            // Apply Log-Normal Weighting (Tempo Prior)
+            // Weight = exp(-0.5 * (log2(bpm / centerBPM) / sigma)^2)
+            let sigma: Float = 0.5 // Octave standard deviation
+            let logDiff = log2(bpm / centerBPM)
+            let weight = exp(-0.5 * pow(logDiff / sigma, 2))
+            
+            let score = normalizedSum * weight
+            
+            if score > maxScore {
+                maxScore = score
+                bestLag = lag
             }
         }
         
-        guard peaks.count > 2 else { return nil }
+        guard bestLag > 0 else { return nil }
         
-        // 6. Inter-onset intervals (IOI) in seconds
-        var iois: [Float] = []
-        for i in 1..<peaks.count {
-            let interval = Float(peaks[i] - peaks[i - 1]) / targetRate
-            if interval > 0.3 && interval < 1.5 { // ~40 to 200 BPM
-                iois.append(interval)
-            }
-        }
-        
-        guard !iois.isEmpty else { return nil }
-        
-        // 7. Find median IOI to estimate BPM
-        iois.sort()
-        let medianIOI = iois[iois.count / 2]
-        
-        let estimatedBPM = Int(round(60.0 / medianIOI))
-        
-        // Clamp to typical music BPM ranges
-        if estimatedBPM >= 60 && estimatedBPM <= 200 {
-            return estimatedBPM
-        }
-        return nil
+        let estimatedBPM = Int(round(60.0 / (Float(bestLag) / targetRate)))
+        return estimatedBPM
     }
     
     // Natively extract Chromagram via vDSP FFT and compare against Krumhansl-Schmuckler profiles
@@ -193,9 +208,9 @@ actor AudioAnalyzerEngine {
         guard sum > 0 else { return nil }
         vDSP_vsdiv(globalChroma, 1, &sum, &globalChroma, 1, vDSP_Length(12))
         
-        // 3. Profile Correlation (Krumhansl-Schmuckler)
-        let majorProfile: [Float] = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
-        let minorProfile: [Float] = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
+        // 3. Profile Correlation (KeyFinder / Sha'ath profiles for EDM)
+        let majorProfile: [Float] = [24.0, 2.5, 11.5, 3.0, 15.5, 12.0, 3.0, 18.0, 3.5, 9.5, 3.0, 8.5]
+        let minorProfile: [Float] = [24.0, 4.0, 13.5, 14.5, 6.0, 10.5, 4.5, 18.0, 8.5, 7.5, 4.0, 6.0]
         
         let pitchClasses = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]
         

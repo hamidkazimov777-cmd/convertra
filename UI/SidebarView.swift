@@ -29,60 +29,9 @@ struct SidebarView: View {
                 SidebarItem(title: "Library", icon: "music.note.list", isSelected: appState.selectedSection == .library) {
                     appState.selectedSection = .library
                 }
-                SidebarItem(title: "Analysis", icon: "waveform", isSelected: false) {}
-                SidebarItem(title: "Metadata", icon: "tag", isSelected: appState.selectedSection == .metadata) {
-                    appState.selectedSection = .metadata
-                }
                 SidebarItem(title: "Conversion", icon: "arrow.triangle.2.circlepath", isSelected: appState.selectedSection == .conversion) {
                     appState.selectedSection = .conversion
                 }
-                SidebarItem(title: "Renamer", icon: "pencil", isSelected: false) {}
-                SidebarItem(title: "Duplicates", icon: "square.on.square", isSelected: false) {}
-                SidebarItem(title: "Settings", icon: "gearshape", isSelected: false) {}
-            }
-            .padding(.horizontal, 12)
-            
-            Spacer().frame(height: 32)
-            
-            // Collections
-            HStack {
-                Text("COLLECTIONS")
-                    .font(.inter(size: 11, weight: .bold))
-                    .foregroundStyle(Theme.Colors.textMuted)
-                Spacer()
-                Button(action: {}) {
-                    Image(systemName: "plus")
-                        .font(.inter(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.Colors.textMuted)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 8)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                SidebarCollectionItem(title: "All Tracks", icon: "folder", isSelected: true, count: appState.library.count) {}
-                SidebarCollectionItem(title: "Converted", icon: "folder", isSelected: false, count: 0) {}
-                SidebarCollectionItem(title: "To Convert", icon: "folder", isSelected: false, count: 0) {}
-                
-                HStack(spacing: 8) {
-                    Image(systemName: "folder")
-                        .frame(width: 16)
-                    Text("Loved")
-                    Image(systemName: "star.fill")
-                        .foregroundStyle(Theme.Colors.accentPrimary)
-                        .font(.inter(size: 10))
-                    Spacer()
-                    Text("0")
-                        .font(.inter(size: 12))
-                }
-                .font(.inter(size: 13))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                
-                SidebarCollectionItem(title: "Deep House", icon: "folder", isSelected: false, count: 0) {}
-                SidebarCollectionItem(title: "Tech House", icon: "folder", isSelected: false, count: 0) {}
             }
             .padding(.horizontal, 12)
             
