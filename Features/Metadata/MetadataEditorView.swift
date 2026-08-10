@@ -29,7 +29,7 @@ struct MetadataEditorView: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "tag")
-                .font(.system(size: 44, weight: .light))
+                .font(.inter(size: 44, weight: .light))
                 .foregroundStyle(.secondary)
             Text("Select tracks to edit metadata")
                 .font(.title2.weight(.semibold))

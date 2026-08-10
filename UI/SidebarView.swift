@@ -14,8 +14,8 @@ struct SidebarView: View {
                         .frame(height: 24)
                 } else {
                     Text("CONVERTRA")
-                        .font(.system(size: 20, weight: .bold, design: .default))
-                        .foregroundStyle(Theme.Colors.goldPrimary)
+                        .font(.inter(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.Colors.accentPrimary)
                 }
                 Spacer()
             }
@@ -46,12 +46,12 @@ struct SidebarView: View {
             // Collections
             HStack {
                 Text("COLLECTIONS")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.inter(size: 11, weight: .bold))
                     .foregroundStyle(Theme.Colors.textMuted)
                 Spacer()
                 Button(action: {}) {
                     Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.inter(size: 11, weight: .bold))
                         .foregroundStyle(Theme.Colors.textMuted)
                 }
                 .buttonStyle(.plain)
@@ -69,13 +69,13 @@ struct SidebarView: View {
                         .frame(width: 16)
                     Text("Loved")
                     Image(systemName: "star.fill")
-                        .foregroundStyle(Theme.Colors.goldPrimary)
-                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.Colors.accentPrimary)
+                        .font(.inter(size: 10))
                     Spacer()
                     Text("0")
-                        .font(.system(size: 12))
+                        .font(.inter(size: 12))
                 }
-                .font(.system(size: 13))
+                .font(.inter(size: 13))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -108,8 +108,8 @@ struct SidebarItem: View {
                 Text(title)
                 Spacer()
             }
-            .font(.system(size: 14, weight: isSelected ? .medium : .regular))
-            .foregroundStyle(isSelected ? Theme.Colors.goldPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
+            .font(.inter(size: 14, weight: isSelected ? .medium : .regular))
+            .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
@@ -142,11 +142,11 @@ struct SidebarCollectionItem: View {
                 Spacer()
                 if count > 0 {
                     Text("\(count)")
-                        .font(.system(size: 12))
+                        .font(.inter(size: 12))
                 }
             }
-            .font(.system(size: 13, weight: isSelected ? .medium : .regular))
-            .foregroundStyle(isSelected ? Theme.Colors.goldPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
+            .font(.inter(size: 13, weight: isSelected ? .medium : .regular))
+            .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(

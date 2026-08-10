@@ -6,19 +6,19 @@ enum Theme {
         static let bgBase = Color(hex: "#050505")
         static let bgPrimary = Color(hex: "#080808")
         static let bgSecondary = Color(hex: "#0D0D0D")
-        static let bgHover = Color(hex: "#1A1A1A")
-        static let bgSelected = Color(hex: "#222222") // Or a slight tint of gold
+        static let bgHover = Color(hex: "#111111")
+        static let bgSelected = Color(hex: "#1A1A1A")
         
-        // Accents
-        static let goldPrimary = Color(hex: "#9A8735")
-        static let goldHover = Color(hex: "#A18F3C")
-        static let goldPressed = Color(hex: "#8C7A2B")
-        static let goldMuted = Color(hex: "#4D431A")
+        // Accents (Olive/Khaki)
+        static let accentPrimary = Color(hex: "#6B705C")
+        static let accentHover = Color(hex: "#939B7F")
+        static let accentPressed = Color(hex: "#7A8068")
+        static let accentMuted = Color(hex: "#8A9075")
         
         // Text
         static let textPrimary = Color.white
-        static let textSecondary = Color(hex: "#888888")
-        static let textMuted = Color(hex: "#555555")
+        static let textSecondary = Color(hex: "#A0A0A0")
+        static let textMuted = Color(hex: "#8E8E8E")
         
         // Borders
         static let border = Color(hex: "#222222")
@@ -58,5 +58,18 @@ extension Color {
             blue:  Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+}
+
+extension Font {
+    static func inter(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        switch weight {
+        case .bold, .semibold, .heavy, .black:
+            return .custom("Inter-SemiBold", size: size)
+        case .medium:
+            return .custom("Inter-Medium", size: size)
+        default:
+            return .custom("Inter-Regular", size: size)
+        }
     }
 }

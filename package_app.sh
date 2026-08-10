@@ -46,6 +46,8 @@ cat << 'PLIST' > "$APP_BUNDLE/Contents/Info.plist"
     <string>AppIcon</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>ATSApplicationFontsPath</key>
+    <string>Fonts</string>
 </dict>
 </plist>
 PLIST

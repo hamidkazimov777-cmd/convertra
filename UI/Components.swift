@@ -2,14 +2,14 @@ import SwiftUI
 
 // MARK: - Button Styles
 
-struct GoldButtonStyle: ButtonStyle {
+struct AccentButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 14, weight: .semibold))
+            .font(.inter(size: 14, weight: .semibold))
             .foregroundStyle(Theme.Colors.bgBase)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(configuration.isPressed ? Theme.Colors.goldPressed : Theme.Colors.goldPrimary)
+            .background(configuration.isPressed ? Theme.Colors.accentPressed : Theme.Colors.accentPrimary)
             .clipShape(RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius))
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }
@@ -18,7 +18,7 @@ struct GoldButtonStyle: ButtonStyle {
 struct GhostButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 14, weight: .medium))
+            .font(.inter(size: 14, weight: .medium))
             .foregroundStyle(Theme.Colors.textPrimary)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
@@ -39,11 +39,11 @@ struct SearchTextFieldStyle: TextFieldStyle {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(Theme.Colors.textSecondary)
-                .font(.system(size: 12))
+                .font(.inter(size: 12))
             
             configuration
                 .textFieldStyle(.plain)
-                .font(.system(size: 13))
+                .font(.inter(size: 13))
                 .foregroundStyle(Theme.Colors.textPrimary)
         }
         .padding(.horizontal, 10)

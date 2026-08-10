@@ -65,13 +65,13 @@ struct InspectorInfoTab: View {
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(file.displayTitle)
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.inter(size: 14, weight: .bold))
                             .foregroundStyle(Theme.Colors.textPrimary)
                         Text(file.displayArtist)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Theme.Colors.goldPrimary)
+                            .font(.inter(size: 13))
+                            .foregroundStyle(Theme.Colors.accentPrimary)
                         Text(file.metadata.album?.isEmpty == false ? file.metadata.album! : "Unknown Album")
-                            .font(.system(size: 12))
+                            .font(.inter(size: 12))
                             .foregroundStyle(Theme.Colors.textSecondary)
                     }
                 }
@@ -86,12 +86,12 @@ struct InspectorInfoTab: View {
                                 path.move(to: CGPoint(x: 0, y: 20))
                                 path.addLine(to: CGPoint(x: 260, y: 20))
                             }
-                            .stroke(Theme.Colors.goldPrimary, style: StrokeStyle(lineWidth: 1, dash: [2]))
+                            .stroke(Theme.Colors.accentPrimary, style: StrokeStyle(lineWidth: 1, dash: [2]))
                         )
                     HStack {
-                        Text("0:00").font(.system(size: 10))
+                        Text("0:00").font(.inter(size: 10))
                         Spacer()
-                        Text(file.displayDuration).font(.system(size: 10))
+                        Text(file.displayDuration).font(.inter(size: 10))
                     }
                     .foregroundStyle(Theme.Colors.textMuted)
                 }
@@ -130,7 +130,7 @@ struct InspectorMetadataTab: View {
             Button("Save Metadata") {
                 appState.applyMetadataEditDraft()
             }
-            .buttonStyle(GoldButtonStyle())
+            .buttonStyle(AccentButtonStyle())
             .frame(maxWidth: .infinity)
             .padding(.top, 16)
         }
@@ -168,11 +168,11 @@ struct InspectorTabButton: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Text(title)
-                    .font(.system(size: 12, weight: isSelected ? .bold : .medium))
-                    .foregroundStyle(isSelected ? Theme.Colors.goldPrimary : Theme.Colors.textSecondary)
+                    .font(.inter(size: 12, weight: isSelected ? .bold : .medium))
+                    .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : Theme.Colors.textSecondary)
                 
                 Rectangle()
-                    .fill(isSelected ? Theme.Colors.goldPrimary : Color.clear)
+                    .fill(isSelected ? Theme.Colors.accentPrimary : Color.clear)
                     .frame(height: 2)
             }
         }
@@ -188,10 +188,10 @@ struct TechInfoCell: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label.uppercased())
-                .font(.system(size: 9, weight: .bold))
+                .font(.inter(size: 9, weight: .bold))
                 .foregroundStyle(Theme.Colors.textMuted)
             Text(value)
-                .font(.system(size: 13, weight: .medium))
+                .font(.inter(size: 13, weight: .medium))
                 .foregroundStyle(Theme.Colors.textPrimary)
         }
     }
@@ -205,7 +205,7 @@ struct MetadataTextField: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(label.uppercased())
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.inter(size: 9, weight: .bold))
                     .foregroundStyle(Theme.Colors.textMuted)
                 Spacer()
                 Toggle("", isOn: $field.isEnabled)
@@ -216,7 +216,7 @@ struct MetadataTextField: View {
             
             TextField("", text: $field.value)
                 .textFieldStyle(.plain)
-                .font(.system(size: 13))
+                .font(.inter(size: 13))
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .padding(8)
                 .background(

@@ -25,7 +25,7 @@ struct FeaturePlaceholderView: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: image)
-                .font(.system(size: 44, weight: .light))
+                .font(.inter(size: 44, weight: .light))
                 .foregroundStyle(.secondary)
             Text(title)
                 .font(.title2.weight(.semibold))

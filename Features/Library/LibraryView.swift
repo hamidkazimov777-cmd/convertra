@@ -22,8 +22,8 @@ struct LibraryView: View {
         .overlay {
             if isDropTargeted {
                 RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
-                    .strokeBorder(Theme.Colors.goldPrimary, style: StrokeStyle(lineWidth: 2, dash: [8]))
-                    .background(Theme.Colors.goldPrimary.opacity(0.1))
+                    .strokeBorder(Theme.Colors.accentPrimary, style: StrokeStyle(lineWidth: 2, dash: [8]))
+                    .background(Theme.Colors.accentPrimary.opacity(0.1))
                     .padding(8)
                     .allowsHitTesting(false)
             }
@@ -57,7 +57,7 @@ struct TopHeaderView: View {
                     Image(systemName: "square.and.arrow.down")
                     Text("Drop files or folders here")
                 }
-                .font(.system(size: 13))
+                .font(.inter(size: 13))
                 .foregroundStyle(Theme.Colors.textSecondary)
             }
             .frame(height: 52)
@@ -72,7 +72,7 @@ struct TopHeaderView: View {
             Button("Convert to MP3 320") {
                 // To be wired to conversion queue
             }
-            .buttonStyle(GoldButtonStyle())
+            .buttonStyle(AccentButtonStyle())
             .frame(height: 52)
         }
         .padding(.horizontal, 24)
@@ -96,7 +96,7 @@ struct LibraryToolbarView: View {
                 Image(systemName: "square.grid.2x2")
                     .padding(6)
             }
-            .font(.system(size: 12))
+            .font(.inter(size: 12))
             .foregroundStyle(Theme.Colors.textPrimary)
             .cornerRadius(4)
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Theme.Colors.border, lineWidth: 1))
@@ -109,7 +109,7 @@ struct LibraryToolbarView: View {
                 Text("All Keys ▾")
                 Text("All BPM ▾")
             }
-            .font(.system(size: 12))
+            .font(.inter(size: 12))
             .foregroundStyle(Theme.Colors.textSecondary)
             
             Spacer()
@@ -152,7 +152,7 @@ struct TrackListView: View {
                 Text("Size").frame(width: 60, alignment: .trailing)
                 Text("").frame(width: 20)
             }
-            .font(.system(size: 11, weight: .bold))
+            .font(.inter(size: 11, weight: .bold))
             .foregroundStyle(Theme.Colors.textMuted)
             .padding(.horizontal, 24)
             .padding(.vertical, 10)
@@ -192,7 +192,7 @@ struct TrackListView: View {
                         .padding(.trailing, 8)
                 }
             }
-            .font(.system(size: 11))
+            .font(.inter(size: 11))
             .foregroundStyle(Theme.Colors.textMuted)
             .padding(.horizontal, 24)
             .padding(.vertical, 8)
@@ -224,23 +224,23 @@ struct TrackRowView: View {
             
             Text(file.displayTitle)
                 .frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
-                .foregroundStyle(isSelected ? Theme.Colors.goldPrimary : Theme.Colors.textPrimary)
+                .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : Theme.Colors.textPrimary)
                 .lineLimit(1)
             
             Text(file.displayArtist)
                 .frame(width: 120, alignment: .leading)
-                .foregroundStyle(isSelected ? Theme.Colors.goldPrimary.opacity(0.8) : Theme.Colors.textSecondary)
+                .foregroundStyle(isSelected ? Theme.Colors.accentPrimary.opacity(0.8) : Theme.Colors.textSecondary)
                 .lineLimit(1)
             
             // Key Badge
             Text(file.analysis?.musicalKey?.rawValue ?? "-")
-                .font(.system(size: 10, weight: .bold))
+                .font(.inter(size: 10, weight: .bold))
                 .foregroundStyle(file.analysis?.musicalKey == nil ? Theme.Colors.textMuted : Theme.Colors.bgBase)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(file.analysis?.musicalKey == nil ? Color.clear : Theme.Colors.goldPrimary)
+                        .fill(file.analysis?.musicalKey == nil ? Color.clear : Theme.Colors.accentPrimary)
                 )
                 .frame(width: 50, alignment: .leading)
             
@@ -265,7 +265,7 @@ struct TrackRowView: View {
                 .frame(width: 20)
                 .foregroundStyle(Theme.Colors.textMuted)
         }
-        .font(.system(size: 13))
+        .font(.inter(size: 13))
         .padding(.horizontal, 24)
         .padding(.vertical, 8)
         .background(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
