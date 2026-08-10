@@ -11,6 +11,7 @@ struct ConvertraApp: App {
                 .environmentObject(appState)
                 .environmentObject(conversionQueue)
                 .frame(minWidth: 980, minHeight: 620)
+                .preferredColorScheme(.dark)
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
