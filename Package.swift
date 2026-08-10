@@ -15,7 +15,9 @@ let package = Package(
             exclude: [
                 "Tests",
                 "handoff",
-                "README.md"
+                "README.md",
+                "HANDOFF.md",
+                "package_app.sh"
             ],
             sources: [
                 "App/ConvertraApp.swift",
@@ -23,6 +25,8 @@ let package = Package(
                 "App/ContentView.swift",
                 "UI/Theme.swift",
                 "UI/Components.swift",
+                "UI/MainLayoutView.swift",
+                "UI/SidebarView.swift",
                 "Features/Library/LibraryView.swift",
                 "Features/Metadata/MetadataEditorView.swift",
                 "Core/Audio/SupportedAudioFormat.swift",

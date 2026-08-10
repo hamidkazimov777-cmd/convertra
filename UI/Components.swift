@@ -9,10 +9,8 @@ struct GoldButtonStyle: ButtonStyle {
             .foregroundStyle(Theme.Colors.bgBase)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius)
-                    .fill(configuration.isPressed ? Theme.Colors.goldPressed : Theme.Colors.goldPrimary)
-            )
+            .background(configuration.isPressed ? Theme.Colors.goldPressed : Theme.Colors.goldPrimary)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius))
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }
 }
@@ -24,9 +22,10 @@ struct GhostButtonStyle: ButtonStyle {
             .foregroundStyle(Theme.Colors.textPrimary)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(
+            .background(configuration.isPressed ? Theme.Colors.bgSelected : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius))
+            .overlay(
                 RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius)
-                    .fill(configuration.isPressed ? Theme.Colors.bgSelected : (configuration.isPressed ? Theme.Colors.bgHover : Color.clear))
                     .strokeBorder(Theme.Colors.border, lineWidth: 1)
             )
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
@@ -49,9 +48,10 @@ struct SearchTextFieldStyle: TextFieldStyle {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(
+        .background(Theme.Colors.bgBase)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius))
+        .overlay(
             RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius)
-                .fill(Theme.Colors.bgBase)
                 .strokeBorder(Theme.Colors.border, lineWidth: 1)
         )
     }
