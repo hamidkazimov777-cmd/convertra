@@ -23,6 +23,7 @@ struct MetadataEditorView: View {
             allowsMultipleSelection: false,
             onCompletion: appState.handleArtworkImport
         )
+        .navigationTitle("Metadata Editor")
     }
 
     private var emptyState: some View {

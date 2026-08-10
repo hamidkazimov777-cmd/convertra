@@ -50,6 +50,7 @@ struct ConversionQueueView: View {
                         conversionViewModel.clearCompleted()
                     }
                     .disabled(!conversionViewModel.jobs.contains { $0.status == .completed })
+                    .accessibilityLabel("Clear Completed Jobs")
                     
                     Spacer()
                     
@@ -58,10 +59,12 @@ struct ConversionQueueView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!conversionViewModel.jobs.contains { $0.status == .queued || $0.status == .failed })
+                    .accessibilityLabel("Start All Jobs")
                 }
                 .padding()
             }
         }
+        .navigationTitle("Conversion Queue")
     }
     
     private func color(for status: ConversionJob.Status) -> Color {

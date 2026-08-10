@@ -5,7 +5,7 @@ struct ContentView: View {
     @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
 
     var body: some View {
-        HSplitView {
+        NavigationView {
             List(AppViewModel.Section.allCases, selection: $appState.selectedSection) { section in
                 Label(section.rawValue, systemImage: section.systemImage)
                     .tag(section)
@@ -25,7 +25,7 @@ struct ContentView: View {
                     PlayerView()
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(minWidth: 500, minHeight: 400)
         }
         .toolbar {
             ToolbarItem(placement: .automatic) {

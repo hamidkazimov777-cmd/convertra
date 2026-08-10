@@ -42,6 +42,7 @@ struct LibraryView: View {
         } message: {
             Text(appState.libraryErrorMessage)
         }
+        .navigationTitle("Library")
     }
 
     private var emptyState: some View {
@@ -137,8 +138,10 @@ struct LibraryView: View {
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(.secondary)
-        .padding(.horizontal)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 8)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .overlay(Divider(), alignment: .bottom)
     }
 
     private func trackRow(_ audioFile: AudioFile) -> some View {
@@ -176,7 +179,7 @@ struct LibraryView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 65, alignment: .leading)
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
     }
 
     private var filteredAndSortedLibrary: [AudioFile] {
