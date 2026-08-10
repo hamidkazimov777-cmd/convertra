@@ -7,6 +7,7 @@ struct LibraryView: View {
         case artist
         case duration
         case bpm
+        case key
         case sampleRate
         case bitrate
         case codec
@@ -128,9 +129,11 @@ struct LibraryView: View {
             sortButton("Duration", column: .duration)
                 .frame(width: 70, alignment: .trailing)
             sortButton("BPM", column: .bpm)
-                .frame(width: 50, alignment: .trailing)
+                .frame(width: 45, alignment: .trailing)
+            sortButton("Key", column: .key)
+                .frame(width: 65, alignment: .leading)
             sortButton("Rate", column: .sampleRate)
-                .frame(width: 80, alignment: .trailing)
+                .frame(width: 70, alignment: .trailing)
             sortButton("Bitrate", column: .bitrate)
                 .frame(width: 75, alignment: .trailing)
             sortButton("Codec", column: .codec)
@@ -167,10 +170,13 @@ struct LibraryView: View {
             Text(audioFile.analysis?.bpm.map { String(format: "%.0f", $0) } ?? "-")
                 .monospacedDigit()
                 .foregroundStyle(audioFile.analysis?.bpm == nil ? .secondary : .primary)
-                .frame(width: 50, alignment: .trailing)
+                .frame(width: 45, alignment: .trailing)
+            Text(audioFile.analysis?.musicalKey?.rawValue ?? "-")
+                .foregroundStyle(audioFile.analysis?.musicalKey == nil ? .secondary : .primary)
+                .frame(width: 65, alignment: .leading)
             Text(audioFile.displaySampleRate)
                 .monospacedDigit()
-                .frame(width: 80, alignment: .trailing)
+                .frame(width: 70, alignment: .trailing)
             Text(audioFile.displayBitrate)
                 .monospacedDigit()
                 .frame(width: 75, alignment: .trailing)
@@ -222,6 +228,8 @@ struct LibraryView: View {
             result = compare(lhs.analysis?.duration ?? 0, rhs.analysis?.duration ?? 0)
         case .bpm:
             result = compare(lhs.analysis?.bpm ?? 0, rhs.analysis?.bpm ?? 0)
+        case .key:
+            result = (lhs.analysis?.musicalKey?.rawValue ?? "").localizedCaseInsensitiveCompare(rhs.analysis?.musicalKey?.rawValue ?? "")
         case .sampleRate:
             result = compare(lhs.analysis?.sampleRate ?? 0, rhs.analysis?.sampleRate ?? 0)
         case .bitrate:

@@ -74,6 +74,11 @@ enum CoreDataModel {
         bpmAttr.attributeType = .doubleAttributeType
         bpmAttr.isOptional = true
         
+        let keyAttr = NSAttributeDescription()
+        keyAttr.name = "musicalKey"
+        keyAttr.attributeType = .stringAttributeType
+        keyAttr.isOptional = true
+        
         let bitrateAttr = NSAttributeDescription()
         bitrateAttr.name = "bitrate"
         bitrateAttr.attributeType = .integer32AttributeType
@@ -97,7 +102,7 @@ enum CoreDataModel {
         trackEntity.properties = [
             idAttr, urlAttr, bookmarkAttr,
             titleAttr, artistAttr, albumAttr, trackNumAttr, yearAttr, genreAttr,
-            durationAttr, bpmAttr, bitrateAttr, sampleRateAttr, channelsAttr, codecAttr
+            durationAttr, bpmAttr, keyAttr, bitrateAttr, sampleRateAttr, channelsAttr, codecAttr
         ]
         
         model.entities = [trackEntity, bookmarkEntity]
@@ -120,6 +125,7 @@ public class TrackEntity: NSManagedObject {
     
     @NSManaged public var duration: Double
     @NSManaged public var bpm: NSNumber?
+    @NSManaged public var musicalKey: String?
     @NSManaged public var bitrate: NSNumber?
     @NSManaged public var sampleRate: NSNumber?
     @NSManaged public var channels: NSNumber?

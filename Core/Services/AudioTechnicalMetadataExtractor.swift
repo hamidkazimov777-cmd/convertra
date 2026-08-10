@@ -51,6 +51,7 @@ actor AudioTechnicalMetadataExtractor {
             
             let analysis = AudioAnalysis(
                 bpm: advancedAnalysis?.bpm.map { Double($0) },
+                musicalKey: advancedAnalysis?.key.flatMap { MusicalKey(rawValue: $0) },
                 duration: durationSeconds.isFinite && durationSeconds >= 0 ? durationSeconds : 0,
                 bitrate: estimatedDataRate > 0 ? Int(estimatedDataRate.rounded()) : nil,
                 sampleRate: streamDescription?.pointee.mSampleRate,

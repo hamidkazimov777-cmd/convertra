@@ -62,9 +62,13 @@ actor LibraryPersistenceStore {
             )
             var analysis: AudioAnalysis? = nil
             if entity.duration > 0 || entity.codec != AudioCodec.unknown.rawValue {
+                var musicalKey: MusicalKey? = nil
+                if let keyStr = entity.musicalKey {
+                    musicalKey = MusicalKey(rawValue: keyStr)
+                }
                 analysis = AudioAnalysis(
                     bpm: entity.bpm?.doubleValue,
-                    musicalKey: nil,
+                    musicalKey: musicalKey,
                     duration: entity.duration,
                     bitrate: entity.bitrate?.intValue,
                     sampleRate: entity.sampleRate?.doubleValue,
@@ -122,6 +126,7 @@ actor LibraryPersistenceStore {
                 if let analysis = track.audioFile.analysis {
                     entity.duration = analysis.duration
                     entity.bpm = analysis.bpm.map { NSNumber(value: $0) }
+                    entity.musicalKey = analysis.musicalKey?.rawValue
                     entity.bitrate = analysis.bitrate.map { NSNumber(value: $0) }
                     entity.sampleRate = analysis.sampleRate.map { NSNumber(value: $0) }
                     entity.channels = analysis.channels.map { NSNumber(value: $0) }
