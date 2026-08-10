@@ -33,7 +33,6 @@ let package = Package(
                 "UI/BottomPlayerView.swift",
                 "UI/WaveformShape.swift",
                 "Features/Library/LibraryView.swift",
-                "Features/Metadata/MetadataEditorView.swift",
                 "Core/Audio/SupportedAudioFormat.swift",
                 "Core/Services/AudioLibraryScanner.swift",
                 "Core/Services/AudioTechnicalMetadataExtractor.swift",
