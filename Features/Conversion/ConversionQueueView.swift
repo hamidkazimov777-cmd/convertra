@@ -40,6 +40,13 @@ struct ConversionQueueView: View {
                             }
                             .buttonStyle(.plain)
                             .help(job.errorDescription ?? "Unknown error")
+                        } else if job.status == .completed {
+                            Button(action: { NSWorkspace.shared.activateFileViewerSelecting([job.destinationURL]) }) {
+                                Image(systemName: "folder")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Show in Finder")
                         }
                     }
                     .padding(.vertical, 4)
