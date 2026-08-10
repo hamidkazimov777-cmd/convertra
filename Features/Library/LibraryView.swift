@@ -83,6 +83,14 @@ struct LibraryView: View {
                 if appState.selectedAudioFileCount > 0 {
                     Text("\(appState.selectedAudioFileCount) selected")
                         .foregroundStyle(.secondary)
+                    
+                    Button("Remove Selected") {
+                        appState.removeSelectedTracks()
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.red)
+                    .padding(.leading, 8)
+                    
                     Button("Clear Selection") {
                         appState.clearLibrarySelection()
                     }
@@ -192,6 +200,16 @@ struct LibraryView: View {
                 .frame(width: 65, alignment: .leading)
         }
         .padding(.vertical, 4)
+        .contextMenu {
+            Button(role: .destructive) {
+                if !appState.selectedAudioFileIDs.contains(audioFile.id) {
+                    appState.selectedAudioFileIDs = [audioFile.id]
+                }
+                appState.removeSelectedTracks()
+            } label: {
+                Label("Remove from Library", systemImage: "trash")
+            }
+        }
     }
 
     private var filteredAndSortedLibrary: [AudioFile] {

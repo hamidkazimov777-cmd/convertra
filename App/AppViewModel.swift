@@ -100,6 +100,18 @@ final class AppViewModel: ObservableObject {
         selectedAudioFileIDs.removeAll()
     }
     
+    func removeSelectedTracks() {
+        let selectedIDs = selectedAudioFileIDs
+        library.removeAll { selectedIDs.contains($0.id) }
+        
+        for id in selectedIDs {
+            trackBookmarks.removeValue(forKey: id)
+        }
+        
+        selectedAudioFileIDs.removeAll()
+        Task { await persistLibrary() }
+    }
+    
     func clearLibrary() {
         library.removeAll()
         selectedAudioFileIDs.removeAll()
