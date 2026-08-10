@@ -28,8 +28,14 @@
   - Created `LibraryToolbarView` with visual stubs for view modes, filters, and a functional search bar.
   - Rebuilt `TrackListView` replacing the standard `List` with a `LazyVStack` to support deep custom styling (hover, select, colors) and columns.
 
-### Step 4: Right Inspector Panel (In Progress)
+### Step 4: Right Inspector Panel
+- **Completed:**
+  - Created `InspectorView` with interactive tabs (Info, Metadata, Artwork).
+  - Implemented the audio parameters tech grid in the Info tab.
+  - Re-wired the existing `MetadataEditDraft` logic to a sleek right-aligned custom form in the Metadata tab.
+
+### Step 5: Player & Conversion Status (In Progress)
 - **Pending:**
-  - Create `InspectorView` (Tabs: Info, Metadata, Artwork).
-  - Implement audio parameters grid.
-  - Integrate `MetadataEditorView` form logic into the sidebar.
+  - Create persistent `BottomPlayerView`.
+  - Tie `AudioPlayerEngine` states to play/pause controls and waveform seekbar.
+  - Implement Conversion queue progress widget in the bottom right corner.
