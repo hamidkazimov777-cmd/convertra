@@ -34,8 +34,8 @@
   - Implemented the audio parameters tech grid in the Info tab.
   - Re-wired the existing `MetadataEditDraft` logic to a sleek right-aligned custom form in the Metadata tab.
 
-### Step 5: Player & Conversion Status (In Progress)
-- **Pending:**
-  - Create persistent `BottomPlayerView`.
-  - Tie `AudioPlayerEngine` states to play/pause controls and waveform seekbar.
-  - Implement Conversion queue progress widget in the bottom right corner.
+### Step 5: Player & Conversion Status
+- **Completed:**
+  - Created persistent `BottomPlayerView`.
+  - Tied `AudioPlayerEngine` states to play/pause controls and waveform seekbar.
+  - Implemented Conversion queue progress widget in the bottom right corner.
