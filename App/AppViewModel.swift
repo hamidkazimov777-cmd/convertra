@@ -394,7 +394,15 @@ final class AppViewModel: ObservableObject {
     private static func url(from provider: NSItemProvider) async -> URL? {
         await withCheckedContinuation { continuation in
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-                continuation.resume(returning: item as? URL)
+                if let url = item as? URL {
+                    continuation.resume(returning: url)
+                } else if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
+                    continuation.resume(returning: url)
+                } else if let data = item as? Data, let urlString = String(data: data, encoding: .utf8), let url = URL(string: urlString) {
+                    continuation.resume(returning: url)
+                } else {
+                    continuation.resume(returning: nil)
+                }
             }
         }
     }
