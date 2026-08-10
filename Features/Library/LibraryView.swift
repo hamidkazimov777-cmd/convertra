@@ -2,36 +2,29 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct LibraryView: View {
-    private enum SortColumn {
-        case title
-        case artist
-        case duration
-        case bpm
-        case key
-        case sampleRate
-        case bitrate
-        case codec
-    }
-
     @EnvironmentObject private var appState: AppViewModel
     @State private var isDropTargeted = false
     @State private var searchText = ""
-    @State private var sortColumn: SortColumn = .title
-    @State private var isAscending = true
 
     var body: some View {
-        Group {
-            if appState.library.isEmpty {
-                emptyState
-            } else {
-                trackList
-            }
+        VStack(spacing: 0) {
+            TopHeaderView()
+            
+            Divider().background(Theme.Colors.border)
+            
+            LibraryToolbarView(searchText: $searchText)
+            
+            Divider().background(Theme.Colors.border)
+            
+            TrackListView(searchText: searchText)
         }
+        .background(Theme.Colors.bgPrimary)
         .overlay {
             if isDropTargeted {
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [8]))
-                    .padding(16)
+                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                    .strokeBorder(Theme.Colors.goldPrimary, style: StrokeStyle(lineWidth: 2, dash: [8]))
+                    .background(Theme.Colors.goldPrimary.opacity(0.1))
+                    .padding(8)
                     .allowsHitTesting(false)
             }
         }
@@ -43,267 +36,254 @@ struct LibraryView: View {
         } message: {
             Text(appState.libraryErrorMessage)
         }
-        .navigationTitle("Library")
     }
+}
 
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: appState.isLibraryProcessing ? "magnifyingglass" : "waveform")
-                .font(.system(size: 52, weight: .light))
-                .foregroundStyle(.secondary)
+// MARK: - Top Header View
 
-            Text(appState.isLibraryProcessing ? "Preparing your audio…" : "Your audio library is ready")
-                .font(.title2.weight(.semibold))
-
-            Text("Drop audio files or folders here, or choose them from Finder.")
-                .foregroundStyle(.secondary)
-
-            Button("Add Audio Files or Folders…") {
+struct TopHeaderView: View {
+    @EnvironmentObject private var appState: AppViewModel
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Drop Zone
+            ZStack {
+                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                    .strokeBorder(Theme.Colors.border, style: StrokeStyle(lineWidth: 1, dash: [6]))
+                    .background(Theme.Colors.bgBase)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius))
+                
+                HStack(spacing: 8) {
+                    Image(systemName: "square.and.arrow.down")
+                    Text("Drop files or folders here")
+                }
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.Colors.textSecondary)
+            }
+            .frame(height: 52)
+            
+            // Buttons
+            Button("Import") {
                 appState.presentImporter()
             }
-                .buttonStyle(.borderedProminent)
-                .disabled(appState.isLibraryProcessing)
-
-            Text("Supported formats: \(appState.supportedFileTypesDescription)")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-
-            if let status = appState.libraryStatus {
-                statusBanner(status)
+            .buttonStyle(GhostButtonStyle())
+            .frame(height: 52)
+            
+            Button("Convert to MP3 320") {
+                // To be wired to conversion queue
             }
+            .buttonStyle(GoldButtonStyle())
+            .frame(height: 52)
         }
-        .padding(40)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .background(Theme.Colors.bgPrimary)
     }
+}
 
-    private var trackList: some View {
+// MARK: - Library Toolbar View
+
+struct LibraryToolbarView: View {
+    @Binding var searchText: String
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // View Toggles Placeholder
+            HStack(spacing: 0) {
+                Image(systemName: "list.bullet")
+                    .padding(6)
+                    .background(Theme.Colors.bgSelected)
+                Image(systemName: "square.grid.2x2")
+                    .padding(6)
+            }
+            .font(.system(size: 12))
+            .foregroundStyle(Theme.Colors.textPrimary)
+            .cornerRadius(4)
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Theme.Colors.border, lineWidth: 1))
+            
+            Spacer()
+            
+            // Filters Placeholder
+            HStack(spacing: 12) {
+                Text("All Formats ▾")
+                Text("All Keys ▾")
+                Text("All BPM ▾")
+            }
+            .font(.system(size: 12))
+            .foregroundStyle(Theme.Colors.textSecondary)
+            
+            Spacer()
+            
+            // Search
+            TextField("Search tracks", text: $searchText)
+                .textFieldStyle(SearchTextFieldStyle())
+                .frame(width: 200)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+        .background(Theme.Colors.bgBase)
+    }
+}
+
+// MARK: - Track List View
+
+struct TrackListView: View {
+    let searchText: String
+    @EnvironmentObject private var appState: AppViewModel
+    
+    private var filteredLibrary: [AudioFile] {
+        let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if term.isEmpty { return appState.library }
+        return appState.library.filter { $0.searchableText.localizedCaseInsensitiveContains(term) }
+    }
+    
+    var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("\(appState.library.count) track\(appState.library.count == 1 ? "" : "s")")
-                    .font(.headline)
-                if appState.selectedAudioFileCount > 0 {
-                    Text("\(appState.selectedAudioFileCount) selected")
-                        .foregroundStyle(.secondary)
-                    
-                    Button("Remove Selected") {
-                        appState.removeSelectedTracks()
+            // Header
+            HStack(spacing: 12) {
+                Text("#").frame(width: 30, alignment: .leading)
+                Text("Artwork").frame(width: 50, alignment: .center)
+                Text("Title").frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
+                Text("Artist").frame(width: 120, alignment: .leading)
+                Text("Key").frame(width: 50, alignment: .leading)
+                Text("BPM").frame(width: 50, alignment: .trailing)
+                Text("Time").frame(width: 60, alignment: .trailing)
+                Text("Format").frame(width: 60, alignment: .trailing)
+                Text("Size").frame(width: 60, alignment: .trailing)
+                Text("").frame(width: 20)
+            }
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(Theme.Colors.textMuted)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 10)
+            .background(Theme.Colors.bgBase)
+            
+            Divider().background(Theme.Colors.border)
+            
+            if appState.library.isEmpty {
+                Spacer()
+                Text(appState.isLibraryProcessing ? "Preparing library..." : "Library is empty")
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(filteredLibrary.enumerated()), id: \.element.id) { index, file in
+                            TrackRowView(
+                                index: index + 1,
+                                file: file,
+                                isSelected: appState.selectedAudioFileIDs.contains(file.id)
+                            )
+                            .onTapGesture {
+                                appState.selectedAudioFileIDs = [file.id]
+                            }
+                            Divider().background(Theme.Colors.border.opacity(0.5))
+                        }
                     }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.red)
-                    .padding(.leading, 8)
-                    
-                    Button("Clear Selection") {
-                        appState.clearLibrarySelection()
-                    }
-                    .buttonStyle(.link)
                 }
+            }
+            
+            // Bottom Status Bar
+            HStack {
+                Text("\(appState.library.count) tracks")
                 Spacer()
                 if appState.isLibraryProcessing {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text(processingLabel)
-                        .foregroundStyle(.secondary)
+                    ProgressView().controlSize(.small)
+                        .padding(.trailing, 8)
                 }
-                TextField("Search library", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 240)
-                Button("Clear Library") {
-                    appState.clearLibrary()
-                }
-                .foregroundStyle(.red)
-                .disabled(appState.isLibraryProcessing || appState.library.isEmpty)
-                
-                Button("Add Audio") {
-                    appState.presentImporter()
-                }
-                .disabled(appState.isLibraryProcessing)
             }
-            .padding()
-
-            if let status = appState.libraryStatus {
-                statusBanner(status)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-            }
-
-            columnHeader
-
-            List(filteredAndSortedLibrary, selection: $appState.selectedAudioFileIDs) { audioFile in
-                trackRow(audioFile)
-            }
+            .font(.system(size: 11))
+            .foregroundStyle(Theme.Colors.textMuted)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 8)
+            .background(Theme.Colors.bgBase)
         }
     }
+}
 
-    private var columnHeader: some View {
+// MARK: - Track Row View
+
+struct TrackRowView: View {
+    let index: Int
+    let file: AudioFile
+    let isSelected: Bool
+    
+    @State private var isHovered = false
+    
+    var body: some View {
         HStack(spacing: 12) {
-            Color.clear.frame(width: 20)
-            sortButton("Title", column: .title)
-                .frame(minWidth: 190, maxWidth: .infinity, alignment: .leading)
-            sortButton("Artist", column: .artist)
-                .frame(width: 150, alignment: .leading)
-            sortButton("Duration", column: .duration)
-                .frame(width: 70, alignment: .trailing)
-            sortButton("BPM", column: .bpm)
-                .frame(width: 45, alignment: .trailing)
-            sortButton("Key", column: .key)
-                .frame(width: 65, alignment: .leading)
-            sortButton("Rate", column: .sampleRate)
-                .frame(width: 70, alignment: .trailing)
-            sortButton("Bitrate", column: .bitrate)
-                .frame(width: 75, alignment: .trailing)
-            sortButton("Codec", column: .codec)
-                .frame(width: 65, alignment: .leading)
+            Text("\(index)")
+                .frame(width: 30, alignment: .leading)
+                .foregroundStyle(Theme.Colors.textMuted)
+            
+            // Artwork placeholder
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Theme.Colors.bgHover)
+                .frame(width: 32, height: 32)
+                .frame(width: 50, alignment: .center)
+            
+            Text(file.displayTitle)
+                .frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
+                .foregroundStyle(isSelected ? Theme.Colors.goldPrimary : Theme.Colors.textPrimary)
+                .lineLimit(1)
+            
+            Text(file.displayArtist)
+                .frame(width: 120, alignment: .leading)
+                .foregroundStyle(isSelected ? Theme.Colors.goldPrimary.opacity(0.8) : Theme.Colors.textSecondary)
+                .lineLimit(1)
+            
+            // Key Badge
+            Text(file.analysis?.musicalKey?.rawValue ?? "-")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(file.analysis?.musicalKey == nil ? Theme.Colors.textMuted : Theme.Colors.bgBase)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(file.analysis?.musicalKey == nil ? Color.clear : Theme.Colors.goldPrimary)
+                )
+                .frame(width: 50, alignment: .leading)
+            
+            Text(file.analysis?.bpm.map { String(format: "%.0f", $0) } ?? "-")
+                .frame(width: 50, alignment: .trailing)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            
+            Text(file.displayDuration)
+                .frame(width: 60, alignment: .trailing)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .monospacedDigit()
+            
+            Text(file.displayCodec)
+                .frame(width: 60, alignment: .trailing)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            
+            Text(formatSize(getFileSize(file.url)))
+                .frame(width: 60, alignment: .trailing)
+                .foregroundStyle(Theme.Colors.textMuted)
+            
+            Image(systemName: "ellipsis")
+                .frame(width: 20)
+                .foregroundStyle(Theme.Colors.textMuted)
         }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(.secondary)
+        .font(.system(size: 13))
         .padding(.horizontal, 24)
         .padding(.vertical, 8)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .overlay(Divider(), alignment: .bottom)
-    }
-
-    private func trackRow(_ audioFile: AudioFile) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "music.note")
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(audioFile.displayTitle)
-                    .lineLimit(1)
-                Text(audioFile.url.deletingLastPathComponent().path)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            .frame(minWidth: 190, maxWidth: .infinity, alignment: .leading)
-            Text(audioFile.displayArtist)
-                .lineLimit(1)
-                .frame(width: 150, alignment: .leading)
-            Text(audioFile.displayDuration)
-                .monospacedDigit()
-                .frame(width: 70, alignment: .trailing)
-            Text(audioFile.analysis?.bpm.map { String(format: "%.0f", $0) } ?? "-")
-                .monospacedDigit()
-                .foregroundStyle(audioFile.analysis?.bpm == nil ? .secondary : .primary)
-                .frame(width: 45, alignment: .trailing)
-            Text(audioFile.analysis?.musicalKey?.rawValue ?? "-")
-                .foregroundStyle(audioFile.analysis?.musicalKey == nil ? .secondary : .primary)
-                .frame(width: 65, alignment: .leading)
-            Text(audioFile.displaySampleRate)
-                .monospacedDigit()
-                .frame(width: 70, alignment: .trailing)
-            Text(audioFile.displayBitrate)
-                .monospacedDigit()
-                .frame(width: 75, alignment: .trailing)
-            Text(audioFile.displayCodec)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 65, alignment: .leading)
-        }
-        .padding(.vertical, 4)
-        .contextMenu {
-            Button(role: .destructive) {
-                if !appState.selectedAudioFileIDs.contains(audioFile.id) {
-                    appState.selectedAudioFileIDs = [audioFile.id]
-                }
-                appState.removeSelectedTracks()
-            } label: {
-                Label("Remove from Library", systemImage: "trash")
-            }
+        .background(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            isHovered = hovering
         }
     }
-
-    private var filteredAndSortedLibrary: [AudioFile] {
-        let searchTerm = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let filteredLibrary = searchTerm.isEmpty
-            ? appState.library
-            : appState.library.filter { $0.searchableText.localizedCaseInsensitiveContains(searchTerm) }
-
-        return filteredLibrary.sorted(by: isOrdered)
+    
+    private func formatSize(_ bytes: Int64) -> String {
+        guard bytes > 0 else { return "-" }
+        let mb = Double(bytes) / 1_048_576
+        return String(format: "%.1f MB", mb)
     }
-
-    private func sortButton(_ title: String, column: SortColumn) -> some View {
-        Button {
-            if sortColumn == column {
-                isAscending.toggle()
-            } else {
-                sortColumn = column
-                isAscending = true
-            }
-        } label: {
-            HStack(spacing: 3) {
-                Text(title)
-                if sortColumn == column {
-                    Image(systemName: isAscending ? "chevron.up" : "chevron.down")
-                        .font(.caption2)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func isOrdered(_ lhs: AudioFile, _ rhs: AudioFile) -> Bool {
-        let result: ComparisonResult
-        switch sortColumn {
-        case .title:
-            result = lhs.displayTitle.localizedCaseInsensitiveCompare(rhs.displayTitle)
-        case .artist:
-            result = lhs.displayArtist.localizedCaseInsensitiveCompare(rhs.displayArtist)
-        case .duration:
-            result = compare(lhs.analysis?.duration ?? 0, rhs.analysis?.duration ?? 0)
-        case .bpm:
-            result = compare(lhs.analysis?.bpm ?? 0, rhs.analysis?.bpm ?? 0)
-        case .key:
-            result = (lhs.analysis?.musicalKey?.rawValue ?? "").localizedCaseInsensitiveCompare(rhs.analysis?.musicalKey?.rawValue ?? "")
-        case .sampleRate:
-            result = compare(lhs.analysis?.sampleRate ?? 0, rhs.analysis?.sampleRate ?? 0)
-        case .bitrate:
-            result = compare(lhs.analysis?.bitrate ?? 0, rhs.analysis?.bitrate ?? 0)
-        case .codec:
-            result = lhs.displayCodec.localizedCaseInsensitiveCompare(rhs.displayCodec)
-        }
-
-        if result == .orderedSame {
-            return lhs.displayTitle.localizedCaseInsensitiveCompare(rhs.displayTitle) == .orderedAscending
-        }
-        return isAscending ? result == .orderedAscending : result == .orderedDescending
-    }
-
-    private func compare<T: Comparable>(_ lhs: T, _ rhs: T) -> ComparisonResult {
-        if lhs == rhs { return .orderedSame }
-        return lhs < rhs ? .orderedAscending : .orderedDescending
-    }
-
-    private func statusBanner(_ status: AppViewModel.LibraryStatus) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: statusIcon(for: status.severity))
-            Text(status.message)
-                .lineLimit(2)
-            Spacer(minLength: 0)
-        }
-        .font(.caption)
-        .foregroundStyle(statusColor(for: status.severity))
-    }
-
-    private func statusIcon(for severity: AppViewModel.LibraryStatus.Severity) -> String {
-        switch severity {
-        case .information: return "info.circle"
-        case .warning: return "exclamationmark.triangle"
-        case .error: return "xmark.octagon"
-        }
-    }
-
-    private func statusColor(for severity: AppViewModel.LibraryStatus.Severity) -> Color {
-        switch severity {
-        case .information: return .secondary
-        case .warning: return .orange
-        case .error: return .red
-        }
-    }
-
-    private var processingLabel: String {
-        if appState.isRestoringLibrary { return "Restoring…" }
-        if appState.isAnalyzingTechnicalMetadata { return "Analyzing…" }
-        if appState.isReadingMetadata { return "Reading Tags…" }
-        return "Scanning…"
+    
+    private func getFileSize(_ url: URL) -> Int64 {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let size = attrs[.size] as? Int64 else { return 0 }
+        return size
     }
 }

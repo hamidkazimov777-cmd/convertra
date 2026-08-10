@@ -15,9 +15,15 @@
   - Configured `WindowGroup` for custom styling (hidden titlebar, dark mode).
   - Integrated `Logo.png` into Resources.
 
-### Step 2: Main Layout (4-pane skeleton) (In Progress)
+### Step 2: Main Layout (4-pane skeleton)
+- **Completed:**
+  - Created `MainLayoutView` skeleton with 4 zones.
+  - Created custom `SidebarView` and integrated the provided `Logo.png`.
+  - Replaced standard `NavigationView` in `ContentView` with `MainLayoutView`.
+  - Created visual stubs for Collections and Navigation links.
+
+### Step 3: Central Zone (Header & Library) (In Progress)
 - **Pending:**
-  - Create MainLayoutView
-  - Create custom SidebarView (Navigation & Collections stubs)
-  - Create BottomPlayer placeholder
-  - Wire layout in App
+  - Create TopHeaderView (Drop zone, global actions).
+  - Create LibraryToolbarView (Filters, search).
+  - Rebuild TrackListView with custom rows, columns, and hover states.
