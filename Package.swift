@@ -21,6 +21,8 @@ let package = Package(
                 "App/ConvertraApp.swift",
                 "App/AppViewModel.swift",
                 "App/ContentView.swift",
+                "UI/Theme.swift",
+                "UI/Components.swift",
                 "Features/Library/LibraryView.swift",
                 "Features/Metadata/MetadataEditorView.swift",
                 "Core/Audio/SupportedAudioFormat.swift",
@@ -45,6 +47,9 @@ let package = Package(
                 "Features/Conversion/ConversionQueueViewModel.swift",
                 "Features/Conversion/ConversionQueueView.swift",
                 "Core/Services/AudioAnalyzerEngine.swift"
+            ],
+            resources: [
+                .process("Resources")
             ]
         ),
         .testTarget(

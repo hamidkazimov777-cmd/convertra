@@ -17,6 +17,11 @@ mkdir -p "$APP_BUNDLE/Contents/Resources"
 echo "Copying executable..."
 cp .build/release/Convertra "$APP_BUNDLE/Contents/MacOS/"
 
+echo "Copying Resources..."
+if [ -d "Resources" ]; then
+    cp -r Resources/* "$APP_BUNDLE/Contents/Resources/"
+fi
+
 echo "Generating Info.plist..."
 cat << 'PLIST' > "$APP_BUNDLE/Contents/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>

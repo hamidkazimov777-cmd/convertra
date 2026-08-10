@@ -5,57 +5,15 @@ struct ContentView: View {
     @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
 
     var body: some View {
-        NavigationView {
-            List(AppViewModel.Section.allCases, selection: $appState.selectedSection) { section in
-                Label(section.rawValue, systemImage: section.systemImage)
-                    .tag(section)
+        MainLayoutView()
+            // We use fileImporter here so it's attached to the main window
+            .fileImporter(
+                isPresented: $appState.isImporterPresented,
+                allowedContentTypes: SupportedAudioFormat.importableContentTypes,
+                allowsMultipleSelection: true
+            ) { result in
+                appState.handleFileImport(result)
             }
-            .listStyle(.sidebar)
-            .frame(minWidth: 180, idealWidth: 210, maxWidth: 260)
-
-            Group {
-                switch appState.selectedSection ?? .library {
-                case .library:
-                    LibraryView()
-                case .conversion:
-                    ConversionQueueView()
-                case .metadata:
-                    MetadataEditorView()
-                case .player:
-                    PlayerView()
-                }
-            }
-            .frame(minWidth: 500, minHeight: 400)
-        }
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    appState.presentImporter()
-                } label: {
-                    Label("Add Audio", systemImage: "plus")
-                }
-                .disabled(appState.isLibraryProcessing)
-                .help("Add supported audio files or folders")
-            }
-            
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: .mp3_320CBR)
-                    appState.selectedSection = .conversion
-                } label: {
-                    Label("Convert", systemImage: "arrow.triangle.2.circlepath")
-                }
-                .disabled(appState.selectedAudioFileIDs.isEmpty || appState.isLibraryProcessing)
-                .help("Add selected tracks to the conversion queue")
-            }
-        }
-        .fileImporter(
-            isPresented: $appState.isImporterPresented,
-            allowedContentTypes: SupportedAudioFormat.importableContentTypes,
-            allowsMultipleSelection: true
-        ) { result in
-            appState.handleFileImport(result)
-        }
     }
 }
 

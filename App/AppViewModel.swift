@@ -19,7 +19,6 @@ final class AppViewModel: ObservableObject {
         case library = "Library"
         case conversion = "Conversion"
         case metadata = "Metadata"
-        case player = "Player"
 
         var id: Self { self }
 
@@ -28,7 +27,6 @@ final class AppViewModel: ObservableObject {
             case .library: return "music.note.list"
             case .conversion: return "arrow.triangle.2.circlepath"
             case .metadata: return "tag"
-            case .player: return "play.circle"
             }
         }
     }
