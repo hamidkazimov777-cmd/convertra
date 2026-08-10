@@ -1,61 +1,123 @@
 # Convertra
 
-**A native macOS audio-library utility for DJs and music professionals.**
+## Product description
 
-Convertra is a native SwiftUI application for collecting, inspecting, analyzing (BPM & Key), organizing, playing, and converting large audio libraries. It is designed around a responsive, macOS-native workflow—without Electron, web views, or third-party runtime dependencies.
+Convertra is a native macOS audio-library and conversion application for DJs and music professionals.
 
-> **Status:** **Production Ready & Packaged**. Fully implements high-precision native BPM & Musical Key detection (AudioAnalysisEngine 2.0), CoreData/SQLite persistence, batch metadata editing, native audio player with waveform preview, lossless-to-MP3 batch conversion, and ad-hoc signed macOS `.app` bundle release packaging.
+It provides a macOS-native workflow for:
+- audio library ingestion and organization;
+- technical audio analysis;
+- metadata inspection and editing;
+- audio playback;
+- lossless-to-MP3 conversion.
 
-## Why Convertra
+## Current status
 
-DJs and music-library managers need reliable utilities that can handle deeply nested folders and large collections without interrupting their workflow. Convertra focuses on a native, asynchronous foundation for that job:
+Convertra is production-ready. The core workflows for library management, audio analysis, metadata editing, playback, and batch conversion are fully implemented and operational.
 
-- Scan dropped files and folders recursively without blocking the UI.
-- High-precision offline BPM (±0.1 BPM accuracy) and Musical Key detection (Camelot key matching with 95.6% harmonic match accuracy) via native Apple Accelerate (`vDSP`) DSP pipelines.
-- Technical audio analysis, tag reading/writing, player with dynamic waveform, and batch conversion.
-- Target both Intel and Apple Silicon Macs running macOS Monterey or newer.
+## Convertra AudioCore
 
-## Capabilities
+**Convertra AudioCore** is the proprietary local audio-analysis technology used by the production application. It is implemented internally through the current `AudioAnalysisEngine2` implementation.
 
-### Implemented & Verified
+The production analysis path is:
+`AppViewModel.scanAndAdd()`
+→ `AudioTechnicalMetadataExtractor.analyze()`
+→ `AudioAnalysisEngine2.analyze()`
+→ `AudioDecoder`
+→ `SignalPreprocessor` (HPSS)
+→ `TempoDetector`
+→ `BeatTracker`
+→ `PhaseAligner`
+→ `DownbeatDetector`
+→ `KeyDetector`
+→ `SegmentFusion`
+→ `AudioAnalysisResult2`
+→ `AudioAnalysis2Adapter`
+→ `AudioAnalysis`
+→ `TrackListView` / `TrackInspectorView`
 
-- **4-Pane Professional DJ UI**: Dark mode interface (Sidebar, Library, Inspector, Persistent Player).
-- **Library Ingestion & Scanning**: Recursive discovery for WAV, AIFF, FLAC, ALAC, MP3, AAC, and M4A with duplicate filtering and delta-sync SQLite persistence.
-- **AudioAnalysisEngine 2.0**:
-  - High-precision tempo extraction (MAE: 0.15 BPM, 0% Octave Errors).
-  - 36-bin CQT log-filterbank chromagram key detection with Pearson correlation against pitch profiles (87.7% Exact Camelot, 95.6% Harmonic Match).
-  - Multi-band sliding HPSS, beat tracking, downbeat alignment, and weighted 4-segment fusion (`.intro`, `.bodyA`, `.bodyB`, `.outro`).
-- **Inspector Panel**: Detailed track info, Camelot Key badges, Musical Key display, and confidence metrics (`bpmConfidence`, `keyConfidence`).
-- **Metadata Editor**: Single and batch tag/artwork updates with atomic snapshot persistence.
-- **Native Player**: Built-in player with playback controls, seeking, volume, and dynamic waveform visualization.
-- **Batch Conversion**: FFmpeg-powered lossless-to-MP3 batch conversion engine with queue management.
-- **Release Packaging**: One-step script (`package_app.sh`) generating a signed macOS `.app` bundle (`Convertra.app`) with ad-hoc codesign verification.
+AudioCore provides:
+- BPM / tempo detection
+- beat tracking
+- downbeat detection
+- musical key detection
+- Camelot key mapping
+- segment-based analysis/fusion
+- confidence scoring
+
+The analysis is performed locally using Swift and Apple's AVFoundation, Accelerate, and vDSP technologies. The production audio-analysis path does NOT depend on external audio-analysis APIs, cloud analysis services, or third-party audio-analysis engines. It is a proprietary DSP-based audio-analysis engine, not a neural-network or AI system.
+
+## Current capabilities
+
+- **Native SwiftUI macOS application**: Built entirely with Swift and modern macOS frameworks.
+- **File/folder selection & drag-and-drop ingestion**: Intuitive import workflows via native macOS panels and drop targets.
+- **Recursive audio discovery**: Efficient scanning of deeply nested directories for supported audio formats.
+- **Persistent library**: Delta-sync SQLite (CoreData) persistence ensuring fast loads and reliable metadata storage.
+- **Technical metadata extraction**: Automatic reading of stream properties and tags.
+- **Convertra AudioCore analysis**: High-precision local DSP analysis for BPM, Camelot keys, and beat grids.
+- **Metadata inspection/editing**: Inspector panel for viewing and batch-updating track metadata.
+- **Audio playback**: Native AVFoundation player with dynamic waveform visualization.
+- **Lossless-to-MP3 conversion**: FFmpeg-powered batch conversion queue.
+
+## Engineering highlights
+
+- Native Swift + SwiftUI macOS application.
+- Apple-native audio technologies (AVFoundation, Accelerate, vDSP).
+- Local asynchronous processing.
+- Actor-based/background library scanning.
+- Security-scoped resource handling for robust sandbox compliance.
+- Proprietary local DSP analysis through Convertra AudioCore.
+- No Electron/web wrappers.
+- No external audio-analysis service.
+- Support for both Intel and Apple Silicon Macs.
+
+*(Note: Batch conversion utilizes a bundled FFmpeg command runner, but the core analysis and playback pipelines are entirely native.)*
 
 ## Architecture
 
+The repository is structured around a domain-driven feature architecture:
+
 ```text
-App/                    SwiftUI application entry point and main view model
-Features/
-  Library/              Library presentation, drag-and-drop, and track inspector
-  Metadata/             Batch metadata editor view
-  Conversion/           Batch conversion queue view
-  Player/               Playback view model and player view
+App/                    Application lifecycle, main view models, and UI routing
 Core/
-  Audio/                Supported format definitions & AVFoundation player engine
-  Models/               Audio file, metadata, analysis, and conversion domain models
-  Services/
-    Analysis/           AudioAnalysisEngine 2.0 (Decoder, HPSS, Tempo, Key, CQT, Fusion, Adapter)
-    ArtworkCache.swift  Local cover art disk cache
-    AudioLibraryScanner.swift  Background folder scanner actor
-    AudioMetadataExtractor.swift  AVFoundation metadata parser
-    AudioMetadataWriter.swift     Audio tag writer
-    AudioTechnicalMetadataExtractor.swift  Stream property & analysis extractor
-    LibraryPersistenceStore.swift  SQLite CoreData persistence store
-    WaveformAnalyzer.swift        Waveform data generator
-Tests/                  Unit & 114-track physical audio benchmark tests
-package_app.sh          Automated release compilation, packaging & ad-hoc signing script
-handoff.md              Project continuity handoff record
+  Audio/                Supported formats and audio player engines
+  Models/               Domain models (AudioFile, AudioAnalysis, ConversionJob, etc.)
+  Services/             Core business logic:
+    Analysis/           Convertra AudioCore (AudioAnalysisEngine2 and DSP pipelines)
+    AudioLibraryScanner Audio ingestion and discovery
+    LibraryPersistence  CoreData / SQLite storage
+    Metadata Extractors Metadata reading and writing
+    ConversionEngine    Batch audio conversion handling
+Features/
+  Library/              Track list, drag-and-drop handling, and track inspector UI
+  Metadata/             Metadata editor UI
+  Conversion/           Conversion queue UI
+  Player/               Player view model and waveform UI components
+Tests/                  Unit tests, AudioCore benchmarks, and validation infrastructure
+UI/                     Shared UI components, theming, layouts, and sidebars
+Resources/              Asset catalogs and bundled resources
 ```
+
+## Benchmark information
+
+The Convertra AudioCore technology has been validated against a benchmark of 114 real commercial audio tracks. The existing benchmark results are:
+
+- **Key Exact Camelot**: 87.7%
+- **Key Harmonic Match**: 95.6%
+- **Critical Bad Key Errors**: 4.4%
+- **BPM Exact ±0.1**: 85.1%
+- **BPM Tolerant ±0.5**: 95.6%
+- **BPM MAE**: 0.15 BPM
+- **Octave Errors**: 0%
+- **Realtime Factor**: 145.2x
+
+## Development status
+
+The application has successfully reached its production release milestone. Core features including library ingestion, local DSP analysis (AudioCore), metadata editing, audio playback, and lossless conversion are complete and functionally verified. Development is currently focused on continuous refinement, bug fixes, and minor UI polishes.
+
+## Documentation
+
+For historical context and a detailed continuity record of the development process, refer to [HANDOFF.md](./HANDOFF.md). Please note that `HANDOFF.md` serves as a development record; this `README.md` and the source code itself remain the primary sources of truth for the current implementation status.
 
 ## Requirements
 
@@ -69,7 +131,7 @@ handoff.md              Project continuity handoff record
 git clone https://github.com/hamidkazimov777-cmd/convertra.git
 cd convertra
 
-# Run test suite (50 tests)
+# Run test suite
 swift test
 
 # Build and package signed Convertra.app bundle
