@@ -53,6 +53,7 @@ struct LibraryView: View {
 
 struct TopHeaderView: View {
     @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
     
     var body: some View {
         HStack(spacing: 16) {
@@ -66,7 +67,8 @@ struct TopHeaderView: View {
             .frame(height: 36)
             
             Button("Convert to MP3 320") {
-                // To be wired to conversion queue
+                conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: .mp3_320CBR)
+                conversionQueue.startAll()
             }
             .buttonStyle(AccentButtonStyle())
             .frame(height: 36)
