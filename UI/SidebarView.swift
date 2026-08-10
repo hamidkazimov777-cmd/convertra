@@ -10,8 +10,10 @@ struct SidebarView: View {
                 if let logo = NSImage(named: "Logo") {
                     Image(nsImage: logo)
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 24)
+                        .scaledToFit()
+                        .frame(width: 170)
+                        .frame(height: 32)
+                        .clipped()
                 } else {
                     Text("CONVERTRA")
                         .font(.inter(size: 20, weight: .bold))

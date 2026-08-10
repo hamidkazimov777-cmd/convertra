@@ -98,6 +98,28 @@ final class AppViewModel: ObservableObject {
         selectedAudioFileIDs.removeAll()
     }
     
+    func selectNextTrack() {
+        guard let currentId = selectedAudioFileIDs.first,
+              let currentIndex = library.firstIndex(where: { $0.id == currentId }),
+              currentIndex + 1 < library.count else { return }
+        
+        selectedAudioFileIDs = [library[currentIndex + 1].id]
+    }
+    
+    func selectPreviousTrack() {
+        guard let currentId = selectedAudioFileIDs.first,
+              let currentIndex = library.firstIndex(where: { $0.id == currentId }) else { return }
+        
+        if currentIndex > 0 {
+            selectedAudioFileIDs = [library[currentIndex - 1].id]
+        } else {
+            // If it's the first track, we could either do nothing or just keep it selected
+            // BottomPlayerView's engine seek to 0 will be handled by the player view model if we trigger it
+            // For now, we'll just re-select it
+            selectedAudioFileIDs = [library[0].id]
+        }
+    }
+    
     func removeSelectedTracks() {
         let selectedIDs = selectedAudioFileIDs
         library.removeAll { selectedIDs.contains($0.id) }

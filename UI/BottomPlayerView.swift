@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct BottomPlayerView: View {
     @EnvironmentObject private var appState: AppViewModel
@@ -26,17 +27,27 @@ struct BottomPlayerView: View {
                         GeometryReader { geo in
                             let progress = viewModel.duration > 0 ? CGFloat(viewModel.currentPosition / viewModel.duration) : 0
                             
-                            WaveformShape(samples: viewModel.waveformData)
-                                .fill(Theme.Colors.bgHover)
-                            
-                            WaveformShape(samples: viewModel.waveformData)
-                                .fill(Theme.Colors.accentPrimary)
-                                .mask(
-                                    Rectangle()
-                                        .frame(width: geo.size.width * progress)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                )
-                                .animation(.linear(duration: 0.1), value: progress)
+                            ZStack(alignment: .leading) {
+                                WaveformShape(samples: viewModel.waveformData)
+                                    .fill(Theme.Colors.bgHover)
+                                
+                                WaveformShape(samples: viewModel.waveformData)
+                                    .fill(Theme.Colors.accentPrimary)
+                                    .mask(
+                                        Rectangle()
+                                            .frame(width: geo.size.width * progress)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    )
+                                    .animation(.linear(duration: 0.1), value: progress)
+                            }
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        let percentage = max(0, min(1, value.location.x / geo.size.width))
+                                        viewModel.seek(to: viewModel.duration * Double(percentage))
+                                    }
+                            )
                         }
                     } else {
                         // Empty state / line
@@ -88,9 +99,21 @@ struct BottomPlayerView: View {
     
     private var trackInfoSection: some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Theme.Colors.bgHover)
+            if let track = viewModel.currentTrack, let artworkURL = track.metadata.artworkLocation, let nsImage = NSImage(contentsOf: artworkURL) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 50, height: 50)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Theme.Colors.bgHover)
+                    Image(systemName: "music.note")
+                        .foregroundStyle(Theme.Colors.textMuted)
+                }
                 .frame(width: 50, height: 50)
+            }
             
             if let track = viewModel.currentTrack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -140,12 +163,19 @@ struct BottomPlayerView: View {
             }
             .buttonStyle(.plain)
             
-            Button(action: {}) {
+            Button(action: {
+                if viewModel.currentPosition > 2.0 {
+                    viewModel.seek(to: 0)
+                } else {
+                    appState.selectPreviousTrack()
+                }
+            }) {
                 Image(systemName: "backward.end.fill")
                     .font(.inter(size: 14))
-                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .foregroundStyle(viewModel.currentTrack == nil ? Theme.Colors.textMuted : Theme.Colors.textSecondary)
             }
             .buttonStyle(.plain)
+            .disabled(viewModel.currentTrack == nil)
             
             Button(action: { viewModel.togglePlayback() }) {
                 Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
@@ -159,12 +189,15 @@ struct BottomPlayerView: View {
             .buttonStyle(.plain)
             .disabled(viewModel.currentTrack == nil)
             
-            Button(action: {}) {
+            Button(action: {
+                appState.selectNextTrack()
+            }) {
                 Image(systemName: "forward.end.fill")
                     .font(.inter(size: 14))
-                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .foregroundStyle(viewModel.currentTrack == nil ? Theme.Colors.textMuted : Theme.Colors.textSecondary)
             }
             .buttonStyle(.plain)
+            .disabled(viewModel.currentTrack == nil)
             
             Button(action: {}) {
                 Image(systemName: "repeat")

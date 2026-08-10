@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct InspectorView: View {
     @EnvironmentObject private var appState: AppViewModel
@@ -59,9 +60,26 @@ struct InspectorInfoTab: View {
             VStack(alignment: .leading, spacing: 20) {
                 // Header
                 HStack(alignment: .top, spacing: 12) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Theme.Colors.bgHover)
+                    if let artworkURL = file.metadata.artworkLocation, let nsImage = NSImage(contentsOf: artworkURL) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 64, height: 64)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Theme.Colors.bgHover)
+                            VStack(spacing: 4) {
+                                Image(systemName: "music.note")
+                                    .font(.system(size: 20))
+                                Text("No Artwork")
+                                    .font(.system(size: 8))
+                            }
+                            .foregroundStyle(Theme.Colors.textMuted)
+                        }
                         .frame(width: 64, height: 64)
+                    }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(file.displayTitle)

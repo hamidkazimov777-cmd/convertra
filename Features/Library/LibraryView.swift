@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import AppKit
 
 struct LibraryView: View {
     @EnvironmentObject private var appState: AppViewModel
@@ -12,11 +13,20 @@ struct LibraryView: View {
             
             Divider().background(Theme.Colors.border)
             
-            LibraryToolbarView(searchText: $searchText)
-            
-            Divider().background(Theme.Colors.border)
-            
-            TrackListView(searchText: searchText)
+            GeometryReader { geo in
+                VStack(spacing: 0) {
+                    DropZoneView()
+                        .frame(height: geo.size.height * 0.45)
+                    
+                    Divider().background(Theme.Colors.border)
+                    
+                    VStack(spacing: 0) {
+                        LibraryToolbarView(searchText: $searchText)
+                        Divider().background(Theme.Colors.border)
+                        TrackListView(searchText: searchText)
+                    }
+                }
+            }
         }
         .background(Theme.Colors.bgPrimary)
         .overlay {
@@ -46,38 +56,50 @@ struct TopHeaderView: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // Drop Zone
-            ZStack {
-                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
-                    .strokeBorder(Theme.Colors.border, style: StrokeStyle(lineWidth: 1, dash: [6]))
-                    .background(Theme.Colors.bgBase)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius))
-                
-                HStack(spacing: 8) {
-                    Image(systemName: "square.and.arrow.down")
-                    Text("Drop files or folders here")
-                }
-                .font(.inter(size: 13))
-                .foregroundStyle(Theme.Colors.textSecondary)
-            }
-            .frame(height: 52)
+            Spacer()
             
             // Buttons
             Button("Import") {
                 appState.presentImporter()
             }
             .buttonStyle(GhostButtonStyle())
-            .frame(height: 52)
+            .frame(height: 36)
             
             Button("Convert to MP3 320") {
                 // To be wired to conversion queue
             }
             .buttonStyle(AccentButtonStyle())
-            .frame(height: 52)
+            .frame(height: 36)
+            .disabled(appState.selectedAudioFileIDs.isEmpty)
+            .opacity(appState.selectedAudioFileIDs.isEmpty ? 0.5 : 1.0)
         }
         .padding(.horizontal, 24)
-        .padding(.vertical, 16)
+        .padding(.vertical, 12)
         .background(Theme.Colors.bgPrimary)
+    }
+}
+
+// MARK: - Drop Zone View
+
+struct DropZoneView: View {
+    var body: some View {
+        ZStack {
+            Theme.Colors.bgBase
+            
+            VStack(spacing: 16) {
+                Image(systemName: "square.and.arrow.down")
+                    .font(.system(size: 48, weight: .light))
+                    .foregroundStyle(Theme.Colors.accentPrimary)
+                
+                Text("Drop Audio Files or Folders Here")
+                    .font(.inter(size: 20, weight: .bold))
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                
+                Text("FLAC • WAV • AIFF • ALAC • MP3")
+                    .font(.inter(size: 14))
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+        }
     }
 }
 
@@ -209,6 +231,7 @@ struct TrackRowView: View {
     let isSelected: Bool
     
     @State private var isHovered = false
+    @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
     
     var body: some View {
         HStack(spacing: 12) {
@@ -216,16 +239,38 @@ struct TrackRowView: View {
                 .frame(width: 30, alignment: .leading)
                 .foregroundStyle(Theme.Colors.textMuted)
             
-            // Artwork placeholder
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Theme.Colors.bgHover)
-                .frame(width: 32, height: 32)
-                .frame(width: 50, alignment: .center)
+            // Artwork
+            if let artworkURL = file.metadata.artworkLocation, let nsImage = NSImage(contentsOf: artworkURL) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .frame(width: 50, alignment: .center)
+            } else {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Theme.Colors.bgHover)
+                    .frame(width: 32, height: 32)
+                    .frame(width: 50, alignment: .center)
+            }
             
-            Text(file.displayTitle)
-                .frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
-                .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : Theme.Colors.textPrimary)
-                .lineLimit(1)
+            HStack(spacing: 6) {
+                Text(file.displayTitle)
+                    .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : Theme.Colors.textPrimary)
+                    .lineLimit(1)
+                
+                if let job = conversionQueue.jobs.first(where: { $0.sourceURL == file.url && $0.status == .completed }) {
+                    Button(action: {
+                        NSWorkspace.shared.activateFileViewerSelecting([job.destinationURL])
+                    }) {
+                        Image(systemName: "folder.fill")
+                            .foregroundStyle(Theme.Colors.accentPrimary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Reveal Converted File in Finder")
+                }
+            }
+            .frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
             
             Text(file.displayArtist)
                 .frame(width: 120, alignment: .leading)
