@@ -54,13 +54,7 @@ struct MainLayoutView: View {
                     .frame(height: 1)
                 
                 // Bottom Player
-                VStack {
-                    Text("Bottom Player Placeholder")
-                        .foregroundStyle(Theme.Colors.textMuted)
-                }
-                .frame(height: Theme.Layout.playerHeight)
-                .frame(maxWidth: .infinity)
-                .background(Theme.Colors.bgBase)
+                BottomPlayerView()
             }
         }
     }

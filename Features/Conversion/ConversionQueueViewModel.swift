@@ -8,6 +8,22 @@ final class ConversionQueueViewModel: ObservableObject {
     
     private let engine = AudioConversionEngine()
     
+    var totalJobs: Int { jobs.count }
+    
+    var completedJobs: Int {
+        jobs.filter { $0.status == .completed }.count
+    }
+    
+    var overallProgress: Double {
+        guard !jobs.isEmpty else { return 0 }
+        let total = jobs.reduce(0.0) { $0 + ($1.status == .completed ? 1.0 : $1.progress) }
+        return total / Double(jobs.count)
+    }
+    
+    var isProcessing: Bool {
+        jobs.contains { $0.status == .preparing || $0.status == .converting }
+    }
+    
     func enqueue(files: [AudioFile], settings: ConversionSettings) {
         let newJobs = files.map { file in
             let destURL = getDestinationURL(for: file, settings: settings)
