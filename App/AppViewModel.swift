@@ -99,6 +99,14 @@ final class AppViewModel: ObservableObject {
     func clearLibrarySelection() {
         selectedAudioFileIDs.removeAll()
     }
+    
+    func clearLibrary() {
+        library.removeAll()
+        selectedAudioFileIDs.removeAll()
+        sourceBookmarks.removeAll()
+        trackBookmarks.removeAll()
+        Task { await persistLibrary() }
+    }
 
     func prepareMetadataEditDraft() {
         metadataEditDraft = MetadataEditDraft(files: selectedAudioFiles)

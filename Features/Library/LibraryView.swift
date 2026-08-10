@@ -98,10 +98,16 @@ struct LibraryView: View {
                 TextField("Search library", text: $searchText)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 240)
+                Button("Clear Library") {
+                    appState.clearLibrary()
+                }
+                .foregroundStyle(.red)
+                .disabled(appState.isLibraryProcessing || appState.library.isEmpty)
+                
                 Button("Add Audio") {
                     appState.presentImporter()
                 }
-                    .disabled(appState.isLibraryProcessing)
+                .disabled(appState.isLibraryProcessing)
             }
             .padding()
 

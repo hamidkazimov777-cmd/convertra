@@ -4,6 +4,9 @@ set -e
 APP_NAME="Convertra"
 APP_BUNDLE="$APP_NAME.app"
 
+echo "Cleaning old app..."
+rm -rf "$APP_BUNDLE"
+
 echo "Building release..."
 swift build -c release
 
