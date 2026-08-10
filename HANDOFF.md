@@ -22,8 +22,14 @@
   - Replaced standard `NavigationView` in `ContentView` with `MainLayoutView`.
   - Created visual stubs for Collections and Navigation links.
 
-### Step 3: Central Zone (Header & Library) (In Progress)
+### Step 3: Central Zone (Header & Library)
+- **Completed:**
+  - Created `TopHeaderView` with Drop Zone and primary action buttons.
+  - Created `LibraryToolbarView` with visual stubs for view modes, filters, and a functional search bar.
+  - Rebuilt `TrackListView` replacing the standard `List` with a `LazyVStack` to support deep custom styling (hover, select, colors) and columns.
+
+### Step 4: Right Inspector Panel (In Progress)
 - **Pending:**
-  - Create TopHeaderView (Drop zone, global actions).
-  - Create LibraryToolbarView (Filters, search).
-  - Rebuild TrackListView with custom rows, columns, and hover states.
+  - Create `InspectorView` (Tabs: Info, Metadata, Artwork).
+  - Implement audio parameters grid.
+  - Integrate `MetadataEditorView` form logic into the sidebar.

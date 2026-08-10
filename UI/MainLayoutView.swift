@@ -45,12 +45,7 @@ struct MainLayoutView: View {
                         .frame(width: 1)
                     
                     // Right Inspector
-                    VStack {
-                        Text("Inspector Placeholder")
-                            .foregroundStyle(Theme.Colors.textMuted)
-                    }
-                    .frame(width: Theme.Layout.inspectorWidth)
-                    .background(Theme.Colors.bgBase)
+                    InspectorView()
                 }
                 
                 // Divider

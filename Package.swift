@@ -27,6 +27,7 @@ let package = Package(
                 "UI/Components.swift",
                 "UI/MainLayoutView.swift",
                 "UI/SidebarView.swift",
+                "UI/InspectorView.swift",
                 "Features/Library/LibraryView.swift",
                 "Features/Metadata/MetadataEditorView.swift",
                 "Core/Audio/SupportedAudioFormat.swift",
