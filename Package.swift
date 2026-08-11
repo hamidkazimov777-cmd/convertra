@@ -9,8 +9,15 @@ let package = Package(
     ],
     dependencies: [],
     targets: [
+        // Convertra AudioCore — the proprietary key/tempo DSP engine — is
+        // distributed as a prebuilt binary, not source. See Frameworks/README.md.
+        .binaryTarget(
+            name: "ConvertraAudioCore",
+            path: "Frameworks/ConvertraAudioCore.xcframework"
+        ),
         .executableTarget(
             name: "Convertra",
+            dependencies: ["ConvertraAudioCore"],
             path: ".",
             exclude: [
                 "Tests",

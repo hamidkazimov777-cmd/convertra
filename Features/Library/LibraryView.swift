@@ -68,7 +68,8 @@ struct TopHeaderView: View {
             .frame(height: 36)
             
             Button("Convert to MP3 320") {
-                conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: .mp3_320CBR)
+                guard let folder = selectDestinationFolder() else { return }
+                conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: .mp3_320CBR, outputFolder: folder)
                 conversionQueue.startAll()
             }
             .buttonStyle(AccentButtonStyle())
@@ -139,6 +140,7 @@ struct LibraryToolbarView: View {
                 }
                 
                 Button("Convert Selected") {
+                    guard let folder = selectDestinationFolder() else { return }
                     let settings = ConversionSettings(
                         outputFormat: conversionQueue.selectedTargetFormat,
                         bitrate: .constant(kilobitsPerSecond: 320),
@@ -146,7 +148,7 @@ struct LibraryToolbarView: View {
                         preserveArtwork: true,
                         preserveFolderStructure: true
                     )
-                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: settings)
+                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: settings, outputFolder: folder)
                     appState.selectedSection = .conversion
                 }
                 .buttonStyle(AccentButtonStyle())
@@ -190,6 +192,7 @@ struct LibraryToolbarView: View {
                 }
                 
                 Button("Convert Selected") {
+                    guard let folder = selectDestinationFolder() else { return }
                     let settings = ConversionSettings(
                         outputFormat: conversionQueue.selectedTargetFormat,
                         bitrate: .constant(kilobitsPerSecond: 320),
@@ -197,7 +200,7 @@ struct LibraryToolbarView: View {
                         preserveArtwork: true,
                         preserveFolderStructure: true
                     )
-                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: settings)
+                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: settings, outputFolder: folder)
                     appState.selectedSection = .conversion
                 }
                 .buttonStyle(AccentButtonStyle())
@@ -497,4 +500,20 @@ struct TrackRowView: View {
               let size = attrs[.size] as? Int64 else { return 0 }
         return size
     }
+}
+
+// MARK: - Helpers
+
+func selectDestinationFolder() -> URL? {
+    let panel = NSOpenPanel()
+    panel.canChooseFiles = false
+    panel.canChooseDirectories = true
+    panel.canCreateDirectories = true
+    panel.allowsMultipleSelection = false
+    panel.prompt = "Choose Destination"
+    
+    if panel.runModal() == .OK {
+        return panel.url
+    }
+    return nil
 }

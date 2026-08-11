@@ -25,9 +25,9 @@ final class ConversionQueueViewModel: ObservableObject {
         jobs.contains { $0.status == .preparing || $0.status == .converting }
     }
     
-    func enqueue(files: [AudioFile], settings: ConversionSettings) {
+    func enqueue(files: [AudioFile], settings: ConversionSettings, outputFolder: URL) {
         let newJobs = files.map { file in
-            let destURL = getDestinationURL(for: file, settings: settings)
+            let destURL = getDestinationURL(for: file, settings: settings, outputFolder: outputFolder)
             return ConversionJob(
                 sourceURL: file.url,
                 destinationURL: destURL,
@@ -70,10 +70,9 @@ final class ConversionQueueViewModel: ObservableObject {
         }
     }
     
-    private func getDestinationURL(for file: AudioFile, settings: ConversionSettings) -> URL {
+    private func getDestinationURL(for file: AudioFile, settings: ConversionSettings, outputFolder: URL) -> URL {
         let sourceURL = file.url
-        let baseURL = sourceURL.deletingLastPathComponent()
         let newName = sourceURL.deletingPathExtension().lastPathComponent
-        return baseURL.appendingPathComponent(newName).appendingPathExtension(settings.outputFormat.rawValue)
+        return outputFolder.appendingPathComponent(newName).appendingPathExtension(settings.outputFormat.rawValue)
     }
 }

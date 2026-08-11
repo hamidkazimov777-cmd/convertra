@@ -1,0 +1,59 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 5.9.2 (swiftlang-5.9.2.2.56 clang-1500.1.0.2.5)
+// swift-module-flags: -target x86_64-apple-macos12.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -module-name ConvertraAudioCore
+// swift-module-flags-ignorable: -enable-bare-slash-regex
+import Accelerate
+import Foundation
+import Swift
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+public struct AudioCoreKeyCandidate : Swift.Sendable {
+  public let camelotNumber: Swift.Int
+  public let isMinor: Swift.Bool
+  public let correlation: Swift.Double
+}
+public struct AudioCoreKeyResult : Swift.Sendable {
+  public let camelotNumber: Swift.Int
+  public let isMinor: Swift.Bool
+  public let confidence: Swift.Double
+  public let candidates: [ConvertraAudioCore.AudioCoreKeyCandidate]
+}
+public struct AudioCoreTempoCandidate : Swift.Sendable {
+  public let bpm: Swift.Double
+  public let score: Swift.Double
+  public let confidence: Swift.Double
+}
+public struct AudioCoreTempoResult : Swift.Sendable {
+  public let bpm: Swift.Double
+  public let confidence: Swift.Double
+  public let candidates: [ConvertraAudioCore.AudioCoreTempoCandidate]
+}
+#if compiler(>=5.3) && $Actors
+public actor ConvertraKeyEngine {
+  public static let sampleRate: Swift.Double
+  public init()
+  #if compiler(>=5.3) && $AsyncAwait
+  public func detectKey(pcm: [Swift.Float]) async -> ConvertraAudioCore.AudioCoreKeyResult
+  #endif
+  @objc deinit
+  @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
+  @_semantics("defaultActor") nonisolated final public var unownedExecutor: _Concurrency.UnownedSerialExecutor {
+    get
+  }
+}
+#endif
+#if compiler(>=5.3) && $Actors
+public actor ConvertraTempoEngine {
+  public static let sampleRate: Swift.Double
+  public init()
+  #if compiler(>=5.3) && $AsyncAwait
+  public func detectTempo(pcm: [Swift.Float]) async -> ConvertraAudioCore.AudioCoreTempoResult
+  #endif
+  @objc deinit
+  @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
+  @_semantics("defaultActor") nonisolated final public var unownedExecutor: _Concurrency.UnownedSerialExecutor {
+    get
+  }
+}
+#endif

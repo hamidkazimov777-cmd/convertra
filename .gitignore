@@ -3,3 +3,15 @@
 DerivedData/
 xcuserdata/
 Convertra.app
+
+# Convertra AudioCore source lives outside this repo entirely
+# (~/ConvertraAudioCore-private/); this is a defense-in-depth guard only.
+ConvertraAudioCore-private/
+*.xcarchive
+
+# Stray local dev artifacts — never intended for the repo
+create_icon.swift
+mask_icon.swift
+osascript_err.txt
+screenshot*.png
+test_audio.wav

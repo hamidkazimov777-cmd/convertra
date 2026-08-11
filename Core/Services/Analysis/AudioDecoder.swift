@@ -116,6 +116,58 @@ actor AudioDecoder {
         )
     }
 
+    /// Fast single-segment decode for the streamlined analysis path: the middle
+    /// `seconds` of the track downmixed/resampled to 22.05 kHz mono via AVAssetReader
+    /// (high-quality resampling, no HPSS). Key/tempo detection run directly on this.
+    func decodeAnalysisPCM(url: URL, seconds: Double = 90.0) throws -> (pcm: [Float], totalDuration: Double) {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+
+        let asset = AVURLAsset(url: url)
+        guard let track = asset.tracks(withMediaType: .audio).first else {
+            throw AudioDecoderError.invalidFormat(url)
+        }
+        let total = CMTimeGetSeconds(asset.duration)
+        let start = max(0, (total - seconds) / 2)
+        let dur = min(seconds, total)
+
+        let reader = try AVAssetReader(asset: asset)
+        reader.timeRange = CMTimeRange(
+            start: CMTime(seconds: start, preferredTimescale: 44100),
+            duration: CMTime(seconds: dur, preferredTimescale: 44100)
+        )
+        let settings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVSampleRateKey: Self.targetSampleRate,
+            AVNumberOfChannelsKey: 1,
+            AVLinearPCMBitDepthKey: 32,
+            AVLinearPCMIsFloatKey: true,
+            AVLinearPCMIsNonInterleaved: false,
+            AVLinearPCMIsBigEndianKey: false
+        ]
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: settings)
+        output.alwaysCopiesSampleData = false
+        guard reader.canAdd(output) else { throw AudioDecoderError.invalidFormat(url) }
+        reader.add(output)
+        guard reader.startReading() else { throw AudioDecoderError.emptyAudioData(url) }
+
+        var samples: [Float] = []
+        samples.reserveCapacity(Int(seconds * Self.targetSampleRate))
+        while reader.status == .reading, let sb = output.copyNextSampleBuffer() {
+            if let bb = CMSampleBufferGetDataBuffer(sb) {
+                let length = CMBlockBufferGetDataLength(bb)
+                var tmp = [Float](repeating: 0, count: length / MemoryLayout<Float>.size)
+                tmp.withUnsafeMutableBytes { raw in
+                    _ = CMBlockBufferCopyDataBytes(bb, atOffset: 0, dataLength: length, destination: raw.baseAddress!)
+                }
+                samples.append(contentsOf: tmp)
+            }
+            CMSampleBufferInvalidate(sb)
+        }
+        guard !samples.isEmpty else { throw AudioDecoderError.emptyAudioData(url) }
+        return (samples, total)
+    }
+
     // MARK: - Strategic Segment Calculation
 
     private struct SegmentBound {

@@ -20,6 +20,16 @@ echo "[4/6] Copying release binary and resources..."
 cp .build/release/Convertra "$APP_BUNDLE/Contents/MacOS/"
 chmod +x "$APP_BUNDLE/Contents/MacOS/Convertra"
 
+echo "Embedding Convertra AudioCore framework..."
+mkdir -p "$APP_BUNDLE/Contents/Frameworks"
+cp -R Frameworks/ConvertraAudioCore.xcframework/macos-arm64_x86_64/ConvertraAudioCore.framework \
+    "$APP_BUNDLE/Contents/Frameworks/"
+install_name_tool -change \
+    "@rpath/ConvertraAudioCore.framework/ConvertraAudioCore" \
+    "@executable_path/../Frameworks/ConvertraAudioCore.framework/ConvertraAudioCore" \
+    "$APP_BUNDLE/Contents/MacOS/Convertra" 2>/dev/null || true
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/Convertra" 2>/dev/null || true
+
 if [ -d "Resources" ]; then
     cp -r Resources/* "$APP_BUNDLE/Contents/Resources/"
 fi
