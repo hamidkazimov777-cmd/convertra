@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 struct InspectorView: View {
     @EnvironmentObject private var appState: AppViewModel
@@ -128,46 +129,179 @@ struct InspectorInfoTab: View {
 
 struct InspectorMetadataTab: View {
     @EnvironmentObject private var appState: AppViewModel
-    
+
     var body: some View {
-        VStack(spacing: 16) {
-            MetadataTextField(label: "Title", field: binding(\.title))
-            MetadataTextField(label: "Artist", field: binding(\.artist))
-            MetadataTextField(label: "Album", field: binding(\.album))
-            MetadataTextField(label: "Genre", field: binding(\.genre))
-            MetadataTextField(label: "Year", field: binding(\.year))
-            MetadataTextField(label: "Track", field: binding(\.trackNumber))
-            MetadataTextField(label: "Comment", field: binding(\.comments))
-            MetadataTextField(label: "Composer", field: binding(\.composer))
-            MetadataTextField(label: "ISRC", field: binding(\.isrc))
-            
-            Text("Changes will be written to the original audio file.")
-                .font(.inter(size: 10))
-                .foregroundStyle(Theme.Colors.textMuted)
-                .multilineTextAlignment(.center)
-            
-            Button("Save Metadata") {
-                appState.applyMetadataEditDraft()
+        VStack(spacing: 18) {
+            ArtworkWell()
+
+            VStack(spacing: 12) {
+                MetadataField(label: "Title", field: field(\.title))
+                MetadataField(label: "Artist", field: field(\.artist))
+                MetadataField(label: "Album", field: field(\.album))
+                MetadataField(label: "Album Artist", field: field(\.albumArtist))
+                MetadataField(label: "Genre", field: field(\.genre))
+
+                HStack(spacing: 10) {
+                    MetadataField(label: "Year", field: field(\.year), compact: true)
+                    MetadataField(label: "Track", field: field(\.trackNumber), compact: true)
+                    MetadataField(label: "Disc", field: field(\.discNumber), compact: true)
+                }
+                HStack(spacing: 10) {
+                    MetadataField(label: "BPM", field: field(\.bpmTag), compact: true)
+                    MetadataField(label: "Key", field: field(\.initialKey), compact: true)
+                }
+
+                MetadataField(label: "Composer", field: field(\.composer))
+                MetadataField(label: "Grouping", field: field(\.grouping))
+                MetadataField(label: "Publisher / Label", field: field(\.publisher))
+                MetadataField(label: "Comment", field: field(\.comments))
+                MetadataField(label: "ISRC", field: field(\.isrc))
+                MetadataField(label: "Copyright", field: field(\.copyright))
             }
-            .buttonStyle(AccentButtonStyle())
-            .frame(maxWidth: .infinity)
-            .padding(.top, 4)
+
+            VStack(spacing: 8) {
+                Text(appState.selectedAudioFileCount > 1
+                     ? "Edited fields will be applied to \(appState.selectedAudioFileCount) tracks."
+                     : "Only the fields you edit are written to the file.")
+                    .font(.inter(size: 10))
+                    .foregroundStyle(Theme.Colors.textMuted)
+                    .multilineTextAlignment(.center)
+
+                Button(appState.isApplyingMetadataEdits ? "Saving…" : "Save Metadata") {
+                    appState.applyMetadataEditDraft()
+                }
+                .buttonStyle(AccentButtonStyle())
+                .frame(maxWidth: .infinity)
+                .disabled(!appState.metadataEditDraft.hasChanges || appState.isApplyingMetadataEdits)
+                .opacity(appState.metadataEditDraft.hasChanges ? 1 : 0.5)
+            }
         }
         .onAppear(perform: appState.prepareMetadataEditDraft)
         .onChange(of: appState.selectedAudioFileIDs) { _ in
             appState.prepareMetadataEditDraft()
         }
     }
-    
-    private func binding<T>(_ keyPath: WritableKeyPath<MetadataEditDraft, T>) -> Binding<T> {
+
+    /// A binding that also flags the field as "edited" whenever the user types,
+    /// so only touched fields are written (mp3tag-style, no per-field toggles).
+    private func field(_ keyPath: WritableKeyPath<MetadataEditDraft, MetadataEditField>) -> Binding<MetadataEditField> {
         Binding(
             get: { appState.metadataEditDraft[keyPath: keyPath] },
-            set: { appState.metadataEditDraft[keyPath: keyPath] = $0 }
+            set: { newValue in
+                var updated = newValue
+                if updated.value != appState.metadataEditDraft[keyPath: keyPath].value {
+                    updated.isEnabled = true
+                }
+                appState.metadataEditDraft[keyPath: keyPath] = updated
+            }
         )
     }
 }
 
+// MARK: - Artwork
 
+struct ArtworkWell: View {
+    @EnvironmentObject private var appState: AppViewModel
+    @State private var isTargeted = false
+
+    private var currentArtwork: NSImage? {
+        let draft = appState.metadataEditDraft
+        if draft.artworkMode == .remove { return nil }
+        if draft.artworkMode == .replace, let data = draft.artworkData {
+            return NSImage(data: data)
+        }
+        if let url = appState.selectedAudioFiles.first?.metadata.artworkLocation {
+            return NSImage(contentsOf: url)
+        }
+        return nil
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Theme.Colors.bgPrimary)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(isTargeted ? Theme.Colors.accentHover : Theme.Colors.border,
+                                          style: StrokeStyle(lineWidth: isTargeted ? 2 : 1, dash: currentArtwork == nil ? [4] : []))
+                    )
+
+                if let artwork = currentArtwork {
+                    Image(nsImage: artwork)
+                        .resizable()
+                        .scaledToFill()
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    VStack(spacing: 6) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.system(size: 26, weight: .light))
+                        Text(appState.metadataEditDraft.artworkMode == .remove ? "Artwork removed" : "Drop image or click Replace")
+                            .font(.inter(size: 10))
+                            .multilineTextAlignment(.center)
+                    }
+                    .foregroundStyle(Theme.Colors.textMuted)
+                    .padding(12)
+                }
+            }
+            .frame(height: 180)
+            .onTapGesture { appState.presentArtworkImporter() }
+            .onDrop(of: [.image, .fileURL], isTargeted: $isTargeted) { providers in
+                loadDroppedImage(providers)
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    appState.presentArtworkImporter()
+                } label: {
+                    Label("Replace", systemImage: "square.and.arrow.down")
+                        .font(.inter(size: 11, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(GhostButtonStyle())
+
+                Button {
+                    appState.removeArtwork()
+                } label: {
+                    Label("Remove", systemImage: "trash")
+                        .font(.inter(size: 11, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(DestructiveGhostButtonStyle())
+            }
+        }
+    }
+
+    private func loadDroppedImage(_ providers: [NSItemProvider]) -> Bool {
+        guard let provider = providers.first else { return false }
+
+        if provider.canLoadObject(ofClass: NSImage.self) {
+            _ = provider.loadObject(ofClass: NSImage.self) { object, _ in
+                guard let image = object as? NSImage,
+                      let data = image.pngData else { return }
+                DispatchQueue.main.async { appState.setArtwork(data: data) }
+            }
+            return true
+        }
+        if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
+            _ = provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                guard let data = item as? Data,
+                      let url = URL(dataRepresentation: data, relativeTo: nil),
+                      let imageData = try? Data(contentsOf: url) else { return }
+                DispatchQueue.main.async { appState.setArtwork(data: imageData) }
+            }
+            return true
+        }
+        return false
+    }
+}
+
+extension NSImage {
+    var pngData: Data? {
+        guard let tiff = tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) else { return nil }
+        return rep.representation(using: .png, properties: [:])
+    }
+}
 
 // MARK: - Components
 
@@ -209,38 +343,39 @@ struct TechInfoCell: View {
     }
 }
 
-struct MetadataTextField: View {
+struct MetadataField: View {
     let label: String
     @Binding var field: MetadataEditField
-    
+    var compact: Bool = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
+            HStack(spacing: 4) {
                 Text(label.uppercased())
                     .font(.inter(size: 9, weight: .bold))
-                    .foregroundStyle(Theme.Colors.textMuted)
-                Spacer()
-                Toggle("", isOn: $field.isEnabled)
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
-                    .labelsHidden()
+                    .foregroundStyle(field.isEnabled ? Theme.Colors.accentHover : Theme.Colors.textMuted)
+                if field.isEnabled {
+                    Circle()
+                        .fill(Theme.Colors.accentHover)
+                        .frame(width: 4, height: 4)
+                }
+                Spacer(minLength: 0)
             }
-            
-            TextField("", text: $field.value)
+
+            TextField(compact ? "—" : "", text: $field.value)
                 .textFieldStyle(.plain)
                 .font(.inter(size: 13))
                 .foregroundStyle(Theme.Colors.textPrimary)
-                .padding(8)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 7)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: 5)
                         .fill(Theme.Colors.bgPrimary)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .strokeBorder(Theme.Colors.border, lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 5)
+                                .strokeBorder(field.isEnabled ? Theme.Colors.accentPrimary.opacity(0.6) : Theme.Colors.border, lineWidth: 1)
                         )
                 )
-                .disabled(!field.isEnabled)
-                .opacity(field.isEnabled ? 1.0 : 0.5)
         }
     }
 }

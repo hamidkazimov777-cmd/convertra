@@ -31,9 +31,9 @@ final class AudioTechnicalMetadataExtractorTests: XCTestCase {
             camelotKey: CamelotKey(number: 5, mode: .a)!,
             keyConfidence: 0.88,
             overallConfidence: 0.915,
-            beatGrid: BeatGrid(bpm: 124.0, beats: [], confidence: 0.95),
-            downbeatResult: DownbeatResult(downbeatFrameIndex: 0, downbeatTimeSeconds: 0.0, confidence: 0.9),
-            segmentFusionResult: FusedTempoResult(bpm: 124.0, bpmConfidence: 0.95, introBPM: 124.0, bodyABPM: 124.0, bodyBBPM: 124.0, outroBPM: 124.0)
+            beatGrid: BeatGrid(bpm: 124.0, firstBeatTime: 0.0, beatIntervalSeconds: 0.5, beatTimes: [], confidence: 0.95),
+            downbeatResult: DownbeatResult(downbeatTime: 0.0, downbeatConfidence: 0.9, measureIntervalSeconds: 2.0),
+            segmentFusionResult: FusedTempoResult(bpm: 124.0, bpmConfidence: 0.95, tempoCandidates: [])
         )
 
         let analysis = AudioAnalysis2Adapter.adapt(
@@ -45,7 +45,7 @@ final class AudioTechnicalMetadataExtractorTests: XCTestCase {
         )
 
         XCTAssertEqual(analysis.bpm, 124.0)
-        XCTAssertEqual(analysis.musicalKey, .cMinor)
+        XCTAssertEqual(analysis.musicalKey, MusicalKey.cMinor)
         XCTAssertEqual(analysis.camelotKey, CamelotKey(number: 5, mode: .a)!)
         XCTAssertEqual(analysis.bpmConfidence, 0.95)
         XCTAssertEqual(analysis.keyConfidence, 0.88)
@@ -53,7 +53,7 @@ final class AudioTechnicalMetadataExtractorTests: XCTestCase {
         XCTAssertEqual(analysis.bitrate, 320_000)
         XCTAssertEqual(analysis.sampleRate, 44_100)
         XCTAssertEqual(analysis.channels, 2)
-        XCTAssertEqual(analysis.codec, .mp3)
+        XCTAssertEqual(analysis.codec, AudioCodec.mp3)
     }
 
     private func makeOneSecondStereoWAV() -> Data {

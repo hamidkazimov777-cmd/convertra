@@ -41,12 +41,19 @@ struct AudioMetadataExtractor: Sendable {
                 title: stringValue(in: metadataItems, identifiers: Self.titleIdentifiers),
                 artist: stringValue(in: metadataItems, identifiers: Self.artistIdentifiers),
                 album: stringValue(in: metadataItems, identifiers: Self.albumIdentifiers),
+                albumArtist: stringValue(in: metadataItems, identifiers: Self.albumArtistIdentifiers),
                 genre: stringValue(in: metadataItems, identifiers: Self.genreIdentifiers),
                 year: yearValue(in: metadataItems),
                 trackNumber: trackNumberValue(in: metadataItems),
+                discNumber: intValue(in: metadataItems, identifiers: Self.discNumberIdentifiers),
                 comments: stringValue(in: metadataItems, identifiers: Self.commentIdentifiers),
                 isrc: stringValue(in: metadataItems, identifiers: Self.isrcIdentifiers),
-                composer: stringValue(in: metadataItems, identifiers: Self.composerIdentifiers)
+                composer: stringValue(in: metadataItems, identifiers: Self.composerIdentifiers),
+                grouping: stringValue(in: metadataItems, identifiers: Self.groupingIdentifiers),
+                publisher: stringValue(in: metadataItems, identifiers: Self.publisherIdentifiers),
+                copyright: stringValue(in: metadataItems, identifiers: Self.copyrightIdentifiers),
+                bpmTag: intValue(in: metadataItems, identifiers: Self.bpmIdentifiers),
+                initialKey: stringValue(in: metadataItems, identifiers: Self.keyIdentifiers)
             )
 
             if let artworkData = dataValue(in: metadataItems, identifiers: Self.artworkIdentifiers), !artworkData.isEmpty {
@@ -96,6 +103,11 @@ struct AudioMetadataExtractor: Sendable {
         return AudioMetadataValueParser.trackNumber(from: value)
     }
 
+    private func intValue(in metadataItems: [AVMetadataItem], identifiers: [AVMetadataIdentifier]) -> Int? {
+        guard let value = stringValue(in: metadataItems, identifiers: identifiers) else { return nil }
+        return AudioMetadataValueParser.trackNumber(from: value)
+    }
+
     private static let titleIdentifiers: [AVMetadataIdentifier] = [
         .commonIdentifierTitle,
         .iTunesMetadataSongName,
@@ -141,6 +153,34 @@ struct AudioMetadataExtractor: Sendable {
         .commonIdentifierArtwork,
         .iTunesMetadataCoverArt,
         .id3MetadataAttachedPicture
+    ]
+    private static let albumArtistIdentifiers: [AVMetadataIdentifier] = [
+        .iTunesMetadataAlbumArtist,
+        .id3MetadataBand
+    ]
+    private static let discNumberIdentifiers: [AVMetadataIdentifier] = [
+        .iTunesMetadataDiscNumber,
+        .id3MetadataPartOfASet
+    ]
+    private static let groupingIdentifiers: [AVMetadataIdentifier] = [
+        .iTunesMetadataGrouping,
+        .id3MetadataContentGroupDescription
+    ]
+    private static let publisherIdentifiers: [AVMetadataIdentifier] = [
+        .id3MetadataPublisher,
+        .commonIdentifierPublisher
+    ]
+    private static let copyrightIdentifiers: [AVMetadataIdentifier] = [
+        .commonIdentifierCopyrights,
+        .iTunesMetadataCopyright,
+        .id3MetadataCopyright
+    ]
+    private static let bpmIdentifiers: [AVMetadataIdentifier] = [
+        .iTunesMetadataBeatsPerMin,
+        .id3MetadataBeatsPerMinute
+    ]
+    private static let keyIdentifiers: [AVMetadataIdentifier] = [
+        .id3MetadataInitialKey
     ]
 }
 

@@ -35,6 +35,7 @@ final class ConversionQueueViewModel: ObservableObject {
             )
         }
         jobs.append(contentsOf: newJobs)
+        startAll()
     }
     
     func startAll() {
@@ -72,7 +73,7 @@ final class ConversionQueueViewModel: ObservableObject {
     private func getDestinationURL(for file: AudioFile, settings: ConversionSettings) -> URL {
         let sourceURL = file.url
         let baseURL = sourceURL.deletingLastPathComponent()
-        let newName = sourceURL.deletingPathExtension().lastPathComponent + " (Converted)"
+        let newName = sourceURL.deletingPathExtension().lastPathComponent
         return baseURL.appendingPathComponent(newName).appendingPathExtension(settings.outputFormat.rawValue)
     }
 }

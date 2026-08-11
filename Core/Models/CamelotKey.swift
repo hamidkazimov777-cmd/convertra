@@ -24,6 +24,9 @@ struct CamelotKey: Codable, Hashable, Sendable, CustomStringConvertible, Identif
         "\(number)\(mode.rawValue)"
     }
 
+    var isMinor: Bool { mode == .a }
+    var isMajor: Bool { mode == .b }
+
     var description: String { code }
 
     init?(number: Int, mode: Mode) {

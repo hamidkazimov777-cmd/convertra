@@ -52,6 +52,14 @@ actor LibraryPersistenceStore {
         
         let tracks: [PersistedLibraryTrack] = entities.compactMap { entity in
             guard let url = URL(string: entity.urlPath) else { return nil }
+
+            // Preferred path: decode the full JSON payload (all metadata + analysis fields).
+            if let payload = entity.payload,
+               let file = try? JSONDecoder().decode(AudioFile.self, from: payload) {
+                return PersistedLibraryTrack(audioFile: file, bookmarkData: entity.bookmarkData)
+            }
+
+            // Legacy fallback for stores written before the payload column existed.
             let metadata = AudioMetadata(
                 title: entity.title,
                 artist: entity.artist,
@@ -114,7 +122,8 @@ actor LibraryPersistenceStore {
                 entity.id = id
                 entity.urlPath = track.audioFile.url.absoluteString
                 entity.bookmarkData = track.bookmarkData
-                
+                entity.payload = try? JSONEncoder().encode(track.audioFile)
+
                 let meta = track.audioFile.metadata
                 entity.title = meta.title
                 entity.artist = meta.artist

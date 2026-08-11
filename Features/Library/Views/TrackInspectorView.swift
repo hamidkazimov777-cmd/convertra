@@ -81,7 +81,7 @@ struct TrackInspectorView: View {
                                 .foregroundStyle(Theme.Colors.textMuted)
                             
                             Text(file.analysis?.bpm.map { String(format: "%.2f BPM", $0) } ?? "—")
-                                .font(.inter(size: 13, weight: .bold, design: .monospaced))
+                                .font(.inter(size: 13, weight: .bold))
                                 .foregroundStyle(Theme.Colors.accentPrimary)
                         }
                     }
@@ -98,25 +98,25 @@ struct TrackInspectorView: View {
                     // Confidence Scores
                     if let analysis = file.analysis {
                         HStack {
-                            if let keyConf = analysis.keyConfidence {
+                            if analysis.keyConfidence > 0 {
                                 HStack(spacing: 4) {
                                     Text("Key Conf:")
                                         .font(.inter(size: 10, weight: .medium))
                                         .foregroundStyle(Theme.Colors.textMuted)
-                                    Text(String(format: "%.0f%%", keyConf * 100.0))
+                                    Text(String(format: "%.0f%%", analysis.keyConfidence * 100.0))
                                         .font(.inter(size: 10, weight: .bold))
-                                        .foregroundStyle(keyConf >= 0.70 ? Color.green : Color.orange)
+                                        .foregroundStyle(analysis.keyConfidence >= 0.70 ? Color.green : Color.orange)
                                 }
                             }
                             Spacer()
-                            if let bpmConf = analysis.bpmConfidence {
+                            if analysis.bpmConfidence > 0 {
                                 HStack(spacing: 4) {
                                     Text("BPM Conf:")
                                         .font(.inter(size: 10, weight: .medium))
                                         .foregroundStyle(Theme.Colors.textMuted)
-                                    Text(String(format: "%.0f%%", bpmConf * 100.0))
+                                    Text(String(format: "%.0f%%", analysis.bpmConfidence * 100.0))
                                         .font(.inter(size: 10, weight: .bold))
-                                        .foregroundStyle(bpmConf >= 0.70 ? Color.green : Color.orange)
+                                        .foregroundStyle(analysis.bpmConfidence >= 0.70 ? Color.green : Color.orange)
                                 }
                             }
                         }

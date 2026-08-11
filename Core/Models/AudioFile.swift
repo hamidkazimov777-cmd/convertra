@@ -4,7 +4,7 @@ import Foundation
 /// deliberately separate values so they can be loaded independently in the future.
 struct AudioFile: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
-    let url: URL
+    var url: URL
     var metadata: AudioMetadata
     var analysis: AudioAnalysis?
 

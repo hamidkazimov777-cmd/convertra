@@ -20,11 +20,15 @@ struct MainLayoutView: View {
                     // Center Content
                     VStack(spacing: 0) {
                         Group {
-                            switch appState.selectedSection ?? .library {
+                            switch appState.selectedSection {
                             case .library:
                                 LibraryView()
                             case .conversion:
                                 ConversionQueueView()
+                            case .duplicates:
+                                DuplicatesView()
+                            case .folder(let url):
+                                LibraryView(filterFolder: url)
                             }
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)

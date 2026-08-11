@@ -42,6 +42,8 @@ struct DecodedAudio: Sendable {
     let originalSampleRate: Double
     let originalChannels: Int
     let segments: [AudioSegment]
+
+    var durationSeconds: Double { totalDurationSeconds }
 }
 
 /// Independent, high-performance chunked audio decoder for AudioAnalysisEngine 2.0.

@@ -27,6 +27,7 @@ let package = Package(
                 "App/ContentView.swift",
                 "UI/Theme.swift",
                 "UI/Components.swift",
+                "UI/SplashView.swift",
                 "UI/MainLayoutView.swift",
                 "UI/SidebarView.swift",
                 "UI/InspectorView.swift",
@@ -50,6 +51,8 @@ let package = Package(
                 "Features/Player/PlayerViewModel.swift",
                 "Core/Services/FFmpegCommandRunner.swift",
                 "Core/Services/AudioMetadataWriter.swift",
+                "Core/Services/Metadata/ID3v2TagBuilder.swift",
+                "Core/Services/Metadata/NativeContainerTagger.swift",
                 "Core/Services/AudioConversionEngine.swift",
                 "Core/Services/WaveformAnalyzer.swift",
                 "Features/Conversion/ConversionQueueViewModel.swift",
@@ -59,7 +62,6 @@ let package = Package(
                 "Core/Services/Analysis/SignalPreprocessor.swift",
                 "Core/Services/Analysis/TempoDetector.swift",
                 "Core/Services/Analysis/BeatTracker.swift",
-                "Core/Services/Analysis/PhaseAligner.swift",
                 "Core/Services/Analysis/DownbeatDetector.swift",
                 "Core/Services/Analysis/SegmentFusion.swift",
                 "Core/Services/Analysis/KeyDetector.swift",
@@ -71,7 +73,9 @@ let package = Package(
                 "Core/Services/Analysis/AudioAnalysisEngine2.swift",
                 "Core/Services/Analysis/AudioAnalysis2Adapter.swift",
                 "Features/Library/Views/CamelotBadgeView.swift",
-                "Features/Library/Views/TrackInspectorView.swift"
+                "Features/Library/Views/TrackInspectorView.swift",
+                "Core/Services/DuplicateDetector.swift",
+                "Features/Duplicates/DuplicatesView.swift"
             ],
             resources: [
                 .process("Resources")

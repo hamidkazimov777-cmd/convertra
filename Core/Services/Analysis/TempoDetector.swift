@@ -70,6 +70,18 @@ actor TempoDetector {
             )
         }
 
+        // 2.5. Silent/flat signal guard: no periodicity score means no confidence
+        guard primaryCandidate.score > 1e-5 else {
+            return TempoResult(
+                bpm: 120.0,
+                confidence: 0.0,
+                candidates: rawCandidates,
+                onsetEnvelope: odfTotal,
+                lowBandOnsetEnergy: Double(lowEnergy),
+                highBandOnsetEnergy: Double(highEnergy)
+            )
+        }
+
         // 3. Compute Multi-Factor bpmConfidence
         let confidence = computeMultiFactorConfidence(
             primary: primaryCandidate,
@@ -238,6 +250,14 @@ actor TempoDetector {
                 }
 
                 var periodicityScore = Double(sum / Float(elementsToProcess))
+
+                // Correct integer-lag quantization bias: the dot product measures the true
+                // periodicity at `lag` frames, whereas the nominal grid BPM may differ by up
+                // to ~0.25 frames at high tempi. Attenuate with a Gaussian on the offset so
+                // the grid reflects the analyzed periodicity instead of boosting neighbours
+                // that alias onto the same integer lag.
+                let lagOffset = abs(lagFrames - Double(lag)) // 0.0 ... 0.5 frames
+                periodicityScore *= exp(-8.0 * lagOffset * lagOffset)
 
                 // Apply Soft Bayesian Genre Prior (Wide distribution centered around 120, 140, 174)
                 let prior = softGenrePrior(bpm: currentBPM)

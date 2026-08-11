@@ -5,7 +5,6 @@ import AVFoundation
 final class TempoDetectorTests: XCTestCase {
     var detector: TempoDetector!
     var beatTracker: BeatTracker!
-    var phaseAligner: PhaseAligner!
     var downbeatDetector: DownbeatDetector!
     var segmentFusion: SegmentFusion!
 
@@ -13,7 +12,6 @@ final class TempoDetectorTests: XCTestCase {
         super.setUp()
         detector = TempoDetector()
         beatTracker = BeatTracker()
-        phaseAligner = PhaseAligner()
         downbeatDetector = DownbeatDetector()
         segmentFusion = SegmentFusion()
     }
@@ -21,7 +19,6 @@ final class TempoDetectorTests: XCTestCase {
     override func tearDown() {
         detector = nil
         beatTracker = nil
-        phaseAligner = nil
         downbeatDetector = nil
         segmentFusion = nil
         super.tearDown()
@@ -37,28 +34,28 @@ final class TempoDetectorTests: XCTestCase {
         XCTAssertGreaterThan(result.confidence, 0.50, "Expected high confidence for clear 120 BPM signal")
     }
 
-    func testSyntheticTempo124BPM House() async {
+    func testSyntheticTempo124BPMHouse() async {
         let pcm = TestAudioGenerator.generateRhythmPCM(bpm: 124.0, durationSeconds: 10.0)
         let result = await detector.detectTempo(pcm: pcm)
 
         XCTAssertEqual(result.bpm, 124.0, accuracy: 1.5, "Expected ~124.0 BPM (House), got \(result.bpm)")
     }
 
-    func testSyntheticTempo128BPM TechHouse() async {
+    func testSyntheticTempo128BPMTechHouse() async {
         let pcm = TestAudioGenerator.generateRhythmPCM(bpm: 128.0, durationSeconds: 10.0)
         let result = await detector.detectTempo(pcm: pcm)
 
         XCTAssertEqual(result.bpm, 128.0, accuracy: 1.5, "Expected ~128.0 BPM (Tech House), got \(result.bpm)")
     }
 
-    func testSyntheticTempo130BPM Techno() async {
+    func testSyntheticTempo130BPMTechno() async {
         let pcm = TestAudioGenerator.generateRhythmPCM(bpm: 130.0, durationSeconds: 10.0)
         let result = await detector.detectTempo(pcm: pcm)
 
         XCTAssertEqual(result.bpm, 130.0, accuracy: 1.5, "Expected ~130.0 BPM (Techno), got \(result.bpm)")
     }
 
-    func testSyntheticTempo140BPM Trance() async {
+    func testSyntheticTempo140BPMTrance() async {
         let pcm = TestAudioGenerator.generateRhythmPCM(bpm: 140.0, durationSeconds: 10.0)
         let result = await detector.detectTempo(pcm: pcm)
 
@@ -117,7 +114,7 @@ final class TempoDetectorTests: XCTestCase {
 
     // MARK: - 4. Modular Sub-Components (BeatTracker, PhaseAligner, DownbeatDetector, SegmentFusion)
 
-    func testBeatTrackerAndPhaseAligner() async {
+    func testBeatTracker() async {
         let pcm = TestAudioGenerator.generateRhythmPCM(bpm: 120.0, durationSeconds: 6.0)
         let grid = await beatTracker.trackBeats(pcm: pcm, bpm: 120.0)
 
@@ -125,9 +122,6 @@ final class TempoDetectorTests: XCTestCase {
         XCTAssertEqual(grid.beatIntervalSeconds, 0.5, accuracy: 0.01)
         XCTAssertFalse(grid.beatTimes.isEmpty)
         XCTAssertGreaterThan(grid.confidence, 0.5)
-
-        let phaseOffset = await phaseAligner.alignPhase(pcm: pcm, bpm: 120.0)
-        XCTAssertGreaterThanOrEqual(phaseOffset, 0.0)
     }
 
     func testDownbeatDetectorIsolation() async {

@@ -98,11 +98,19 @@ enum CoreDataModel {
         codecAttr.name = "codec"
         codecAttr.attributeType = .stringAttributeType
         codecAttr.isOptional = false
-        
+
+        // Full JSON-encoded AudioFile — the forward-compatible source of truth.
+        // Legacy columns above are kept populated for external inspection only.
+        let payloadAttr = NSAttributeDescription()
+        payloadAttr.name = "payload"
+        payloadAttr.attributeType = .binaryDataAttributeType
+        payloadAttr.isOptional = true
+
         trackEntity.properties = [
             idAttr, urlAttr, bookmarkAttr,
             titleAttr, artistAttr, albumAttr, trackNumAttr, yearAttr, genreAttr,
-            durationAttr, bpmAttr, keyAttr, bitrateAttr, sampleRateAttr, channelsAttr, codecAttr
+            durationAttr, bpmAttr, keyAttr, bitrateAttr, sampleRateAttr, channelsAttr, codecAttr,
+            payloadAttr
         ]
         
         model.entities = [trackEntity, bookmarkEntity]
@@ -130,6 +138,7 @@ public class TrackEntity: NSManagedObject {
     @NSManaged public var sampleRate: NSNumber?
     @NSManaged public var channels: NSNumber?
     @NSManaged public var codec: String
+    @NSManaged public var payload: Data?
 }
 
 @objc(SourceBookmarkEntity)

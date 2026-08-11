@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
+import AppKit
 
 @MainActor
 final class AppViewModel: ObservableObject {
@@ -15,22 +16,16 @@ final class AppViewModel: ObservableObject {
         let severity: Severity
     }
 
-    enum Section: String, CaseIterable, Identifiable {
-        case library = "Library"
-        case conversion = "Conversion"
-
-        var id: Self { self }
-
-        var systemImage: String {
-            switch self {
-            case .library: return "music.note.list"
-            case .conversion: return "arrow.triangle.2.circlepath"
-            }
-        }
+    enum NavigationSelection: Equatable, Hashable {
+        case library
+        case conversion
+        case duplicates
+        case folder(URL)
     }
 
-    @Published var selectedSection: Section? = .library
+    @Published var selectedSection: NavigationSelection = .library
     @Published private(set) var library: [AudioFile] = []
+    @Published private(set) var duplicateGroups: [DuplicateGroup] = []
     @Published var selectedAudioFileIDs = Set<AudioFile.ID>()
     @Published var isSelectionModeActive = false
     @Published var lastSelectedTrackID: AudioFile.ID?
@@ -38,6 +33,7 @@ final class AppViewModel: ObservableObject {
     @Published var playbackToggleTrigger: UUID = UUID()
     @Published var metadataEditDraft = MetadataEditDraft()
     @Published var isImporterPresented = false
+    @Published var isArtworkImporterPresented = false
     @Published private(set) var isRestoringLibrary = true
     @Published private(set) var isScanningLibrary = false
     @Published private(set) var isAnalyzingTechnicalMetadata = false
@@ -47,6 +43,7 @@ final class AppViewModel: ObservableObject {
     @Published var isLibraryErrorPresented = false
     @Published private(set) var libraryErrorMessage = ""
     @Published var isDeleteConfirmationPresented = false
+    @Published var folderAliases: [URL: String] = [:]
 
     private let libraryScanner = AudioLibraryScanner()
     private let technicalMetadataExtractor = AudioTechnicalMetadataExtractor()
@@ -54,6 +51,7 @@ final class AppViewModel: ObservableObject {
     private let artworkCache = ArtworkCache()
     private let libraryPersistenceStore = LibraryPersistenceStore()
     private let metadataWriter = AudioMetadataWriter()
+    private let duplicateDetector = DuplicateDetector()
     private var sourceBookmarks: [Data] = []
     private var trackBookmarks: [AudioFile.ID: Data] = [:]
 
@@ -69,6 +67,11 @@ final class AppViewModel: ObservableObject {
 
     var supportedFileTypesDescription: String {
         "WAV, AIFF, FLAC, ALAC, MP3, AAC, and M4A"
+    }
+
+    var libraryFolders: [URL] {
+        let urls = library.map { $0.url.deletingLastPathComponent().standardizedFileURL }
+        return Array(Set(urls)).sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
     }
 
     var selectedAudioFileCount: Int {
@@ -136,6 +139,7 @@ final class AppViewModel: ObservableObject {
         selectedAudioFileIDs.removeAll()
         isSelectionModeActive = false
         lastSelectedTrackID = nil
+        analyzeForDuplicates()
         Task { await persistLibrary() }
     }
     
@@ -146,6 +150,7 @@ final class AppViewModel: ObservableObject {
         lastSelectedTrackID = nil
         sourceBookmarks.removeAll()
         trackBookmarks.removeAll()
+        analyzeForDuplicates()
         Task { await persistLibrary() }
     }
     
@@ -193,6 +198,22 @@ final class AppViewModel: ObservableObject {
 
     func prepareMetadataEditDraft() {
         metadataEditDraft = MetadataEditDraft(files: selectedAudioFiles)
+    }
+
+    func presentArtworkImporter() {
+        isArtworkImporterPresented = true
+    }
+
+    /// Marks the draft to remove existing artwork on apply.
+    func removeArtwork() {
+        metadataEditDraft.artworkData = nil
+        metadataEditDraft.artworkMode = .remove
+    }
+
+    /// Applies dropped/pasted image data as the replacement artwork.
+    func setArtwork(data: Data) {
+        metadataEditDraft.artworkData = data
+        metadataEditDraft.artworkMode = .replace
     }
 
     func handleArtworkImport(_ result: Result<[URL], Error>) {
@@ -348,6 +369,7 @@ final class AppViewModel: ObservableObject {
             "Added \(addedCount) track\(addedCount == 1 ? "" : "s").\(analysisDescription)\(metadataDescription)\(skippedDescription)\(persistenceDescription)",
             severity: failedAnalysisCount > 0 || failedMetadataReadCount > 0 || result.skippedItemCount > 0 || !wasSaved ? .warning : .information
         )
+        analyzeForDuplicates()
     }
 
     private func restorePersistedLibrary() async {
@@ -388,7 +410,8 @@ final class AppViewModel: ObservableObject {
                 severity: .error
             )
         }
-
+        
+        analyzeForDuplicates()
         isRestoringLibrary = false
     }
 
@@ -487,6 +510,97 @@ final class AppViewModel: ObservableObject {
                     continuation.resume(returning: nil)
                 }
             }
+        }
+    }
+
+    // MARK: - Duplicates
+    private func analyzeForDuplicates() {
+        duplicateGroups = duplicateDetector.findDuplicates(in: library)
+    }
+
+    func moveTrackToTrash(_ id: AudioFile.ID) {
+        guard let index = library.firstIndex(where: { $0.id == id }) else { return }
+        let track = library[index]
+        
+        do {
+            try FileManager.default.trashItem(at: track.url, resultingItemURL: nil)
+        } catch {
+            print("Failed to move track to trash: \(error)")
+            // We'll still remove it from library even if trashing fails, 
+            // or perhaps not? Standard behavior: if trash fails, show error.
+            // But we will try to remove from library anyway.
+        }
+        
+        library.remove(at: index)
+        trackBookmarks.removeValue(forKey: id)
+        
+        if selectedAudioFileIDs.contains(id) {
+            selectedAudioFileIDs.remove(id)
+            if lastSelectedTrackID == id {
+                lastSelectedTrackID = nil
+            }
+        }
+        
+        analyzeForDuplicates()
+        Task { await persistLibrary() }
+    }
+
+    // MARK: - Folders
+    
+    func deleteFolder(url: URL, moveToTrash: Bool) {
+        if moveToTrash {
+            NSWorkspace.shared.recycle([url]) { [weak self] newURLs, error in
+                DispatchQueue.main.async {
+                    if error == nil {
+                        self?.removeFolderFromLibrary(url: url)
+                    } else {
+                        self?.presentLibraryError("Could not move folder to trash: \(error!.localizedDescription)")
+                    }
+                }
+            }
+        } else {
+            removeFolderFromLibrary(url: url)
+        }
+    }
+    
+    private func removeFolderFromLibrary(url: URL) {
+        library.removeAll { $0.url.deletingLastPathComponent().standardizedFileURL == url.standardizedFileURL }
+        if selectedSection == .folder(url) {
+            selectedSection = .library
+        }
+        analyzeForDuplicates()
+        Task { await persistLibrary() }
+    }
+    
+    func renameFolder(url: URL, newName: String, onMac: Bool) {
+        if onMac {
+            let newURL = url.deletingLastPathComponent().appendingPathComponent(newName)
+            do {
+                try FileManager.default.moveItem(at: url, to: newURL)
+                
+                library = library.map { track in
+                    if track.url.deletingLastPathComponent().standardizedFileURL == url.standardizedFileURL {
+                        var updatedTrack = track
+                        updatedTrack.url = newURL.appendingPathComponent(track.url.lastPathComponent)
+                        return updatedTrack
+                    }
+                    return track
+                }
+                
+                folderAliases.removeValue(forKey: url)
+                
+                if selectedSection == .folder(url) {
+                    selectedSection = .folder(newURL)
+                }
+                
+                analyzeForDuplicates()
+                Task { await persistLibrary() }
+                
+            } catch {
+                presentLibraryError("Failed to rename folder on Mac: \(error.localizedDescription)")
+            }
+        } else {
+            folderAliases[url] = newName
         }
     }
 }

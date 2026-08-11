@@ -61,6 +61,19 @@ extension Color {
     }
 }
 
+extension NSImage {
+    /// Loads a bundled PNG by name, working in both the packaged `.app`
+    /// (main bundle) and SwiftPM debug builds (module resource bundle).
+    static func bundled(_ name: String) -> NSImage? {
+        if let image = NSImage(named: name) { return image }
+        if let url = Bundle.module.url(forResource: name, withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            return image
+        }
+        return nil
+    }
+}
+
 extension Font {
     static func inter(size: CGFloat, weight: Font.Weight = .regular) -> Font {
         switch weight {

@@ -1,7 +1,7 @@
 # Convertra — Project Handoff Document
 
 ## 1. PROJECT STATE
-- **Current Stage**: Stage 3.9 — Final Release Verification, Git Commit & Project Handover (COMPLETE)
+- **Current Stage**: Stage 4.0 — Post-Release UI/UX Polish & Workflow Refinements (COMPLETE)
 - **Completed Roadmap**:
   - Stage 1: Foundation & Shared Domain Models (macOS 12+ SwiftUI app shell, AudioFile, AudioMetadata, AudioAnalysis, CamelotKey).
   - Stage 2: Library Ingestion & Delta-Sync CoreData/SQLite Persistence (`AudioLibraryScanner`, `LibraryPersistenceStore`).
@@ -14,6 +14,12 @@
   - Stage 3.7: Production Integration of AudioAnalysisEngine2 into Application Flow (`AudioAnalysis2Adapter`, `AudioTechnicalMetadataExtractor`).
   - Stage 3.8: Release Packaging, App Bundle Structure, Entitlements & Ad-Hoc Code Signing (`package_app.sh`, `Entitlements.plist`).
   - Stage 3.9: Final Release Verification, README Update & Project Handover.
+  - **Stage 4.0 (Recent Updates)**: 
+    - **UI Redesign**: Redesigned `DuplicatesView` to match the custom aesthetic of `ConversionQueueView` using a `ScrollView` and `LazyVStack`.
+    - **Logic Refinements**: Excluded Remixes from duplicate detection logic. Removed the `(converted)` suffix from batch-converted files.
+    - **Folder Management**: Implemented context menu operations in the Sidebar for library folders, supporting both localized app-only renaming/deletion and global macOS file system renaming/deletion (Move to Trash).
+    - **Workflow Automation**: Automated conversion processing upon triggering "Convert Selected", eliminating the need for a secondary "Start All" button in the queue.
+    - **Branding Polish**: Updated the macOS Application Icon with an Apple-standard squircle background mask and drop-shadow, and refined the Sidebar logo to use a localized styled `Text` component instead of a scaled image.
 - **Project Status**: **100% COMPLETE & RELEASE READY**.
 
 ---

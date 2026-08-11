@@ -25,7 +25,7 @@ actor AudioAnalysisEngine2 {
     private let preprocessor = SignalPreprocessor()
     private let tempoDetector = TempoDetector()
     private let beatTracker = BeatTracker()
-    private let phaseAligner = PhaseAligner()
+
     private let downbeatDetector = DownbeatDetector()
     private let keyDetector = KeyDetector()
     private let segmentFusion = SegmentFusion()

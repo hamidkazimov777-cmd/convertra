@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 import AppKit
 
 struct LibraryView: View {
+    var filterFolder: URL? = nil
     @EnvironmentObject private var appState: AppViewModel
     @State private var isDropTargeted = false
     @State private var searchText = ""
@@ -23,7 +24,7 @@ struct LibraryView: View {
                     VStack(spacing: 0) {
                         LibraryToolbarView(searchText: $searchText)
                         Divider().background(Theme.Colors.border)
-                        TrackListView(searchText: searchText)
+                        TrackListView(searchText: searchText, filterFolder: filterFolder)
                     }
                 }
             }
@@ -220,12 +221,17 @@ struct LibraryToolbarView: View {
 
 struct TrackListView: View {
     let searchText: String
+    var filterFolder: URL? = nil
     @EnvironmentObject private var appState: AppViewModel
     
     private var filteredLibrary: [AudioFile] {
+        var items = appState.library
+        if let folder = filterFolder {
+            items = items.filter { $0.url.deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL }
+        }
         let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if term.isEmpty { return appState.library }
-        return appState.library.filter { $0.searchableText.localizedCaseInsensitiveContains(term) }
+        if term.isEmpty { return items }
+        return items.filter { $0.searchableText.localizedCaseInsensitiveContains(term) }
     }
     
     var body: some View {
@@ -257,9 +263,9 @@ struct TrackListView: View {
             
             Divider().background(Theme.Colors.border)
             
-            if appState.library.isEmpty {
+            if filteredLibrary.isEmpty {
                 Spacer()
-                Text(appState.isLibraryProcessing ? "Preparing library..." : "Library is empty")
+                Text(appState.isLibraryProcessing ? "Preparing library..." : "No tracks found")
                     .foregroundStyle(Theme.Colors.textSecondary)
                 Spacer()
             } else {
@@ -327,7 +333,7 @@ struct TrackListView: View {
             
             // Bottom Status Bar
             HStack {
-                Text("\(appState.library.count) tracks")
+                Text("\(filteredLibrary.count) tracks")
                 Spacer()
                 if appState.isLibraryProcessing {
                     ProgressView().controlSize(.small)
