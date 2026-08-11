@@ -4,34 +4,42 @@ import UniformTypeIdentifiers
 
 struct InspectorView: View {
     @EnvironmentObject private var appState: AppViewModel
-    @State private var selectedTab: Tab = .info
-    
-    enum Tab {
-        case info
-        case metadata
-    }
-    
+    @EnvironmentObject private var loc: Localization
+
     var body: some View {
         VStack(spacing: 0) {
-            // Tabs
-            HStack(spacing: 0) {
-                InspectorTabButton(title: "Info", isSelected: selectedTab == .info) { selectedTab = .info }
-                InspectorTabButton(title: "Metadata", isSelected: selectedTab == .metadata) { selectedTab = .metadata }
+            // Табы — сегментированный контрол на hairline-стекле
+            HStack(spacing: 4) {
+                InspectorTabButton(title: loc["Инфо"], isSelected: appState.inspectorTab == .info) { appState.inspectorTab = .info }
+                InspectorTabButton(title: loc["Метаданные"], isSelected: appState.inspectorTab == .metadata) { appState.inspectorTab = .metadata }
             }
+            .padding(4)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius + 2, style: .continuous)
+                    .fill(Theme.Colors.bgBase.opacity(0.6))
+            )
+            .hairline(Theme.Layout.buttonRadius + 2, color: Theme.Colors.borderSubtle)
             .padding(.horizontal, 16)
             .padding(.top, 16)
-            
-            Divider().background(Theme.Colors.border).padding(.top, 8)
-            
+            .padding(.bottom, 12)
+
+            Divider().background(Theme.Colors.border)
+
             if appState.selectedAudioFileCount == 0 {
                 Spacer()
-                Text("No track selected")
-                    .foregroundStyle(Theme.Colors.textMuted)
+                VStack(spacing: 10) {
+                    Image(systemName: "square.dashed")
+                        .font(.system(size: 30, weight: .light))
+                        .foregroundStyle(Theme.Colors.textMuted)
+                    Text(loc["Трек не выбран"])
+                        .font(.inter(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.Colors.textMuted)
+                }
                 Spacer()
             } else {
                 ScrollView {
                     VStack(spacing: 24) {
-                        switch selectedTab {
+                        switch appState.inspectorTab {
                         case .info:
                             InspectorInfoTab()
                         case .metadata:
@@ -51,7 +59,17 @@ struct InspectorView: View {
 
 struct InspectorInfoTab: View {
     @EnvironmentObject private var appState: AppViewModel
-    
+    @EnvironmentObject private var loc: Localization
+
+    private func channelsText(_ channels: Int?) -> String {
+        switch channels {
+        case 1: return loc["Моно"]
+        case 2: return loc["Стерео"]
+        case let .some(n) where n > 0: return "\(n) ch"
+        default: return "—"
+        }
+    }
+
     var body: some View {
         if let file = appState.library.first(where: { appState.selectedAudioFileIDs.contains($0.id) }) {
             VStack(alignment: .leading, spacing: 20) {
@@ -62,66 +80,45 @@ struct InspectorInfoTab: View {
                             .resizable()
                             .scaledToFill()
                             .frame(width: 64, height: 64)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .hairline(10, color: Theme.Colors.border)
+                            .softShadow(0.6)
                     } else {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 4)
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .fill(Theme.Colors.bgHover)
-                            VStack(spacing: 4) {
-                                Image(systemName: "music.note")
-                                    .font(.system(size: 20))
-                                Text("No Artwork")
-                                    .font(.system(size: 8))
-                            }
-                            .foregroundStyle(Theme.Colors.textMuted)
+                            Image(systemName: "music.note")
+                                .font(.system(size: 22))
+                                .foregroundStyle(Theme.Colors.textMuted)
                         }
                         .frame(width: 64, height: 64)
+                        .hairline(10, color: Theme.Colors.border)
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text(file.displayTitle)
                             .font(.inter(size: 14, weight: .bold))
                             .foregroundStyle(Theme.Colors.textPrimary)
                         Text(file.displayArtist)
-                            .font(.inter(size: 13))
-                            .foregroundStyle(Theme.Colors.accentPrimary)
-                        Text(file.metadata.album?.isEmpty == false ? file.metadata.album! : "Unknown Album")
+                            .font(.inter(size: 13, weight: .medium))
+                            .foregroundStyle(Theme.Colors.accentBright)
+                        Text(file.metadata.album?.isEmpty == false ? file.metadata.album! : loc["Неизвестный альбом"])
                             .font(.inter(size: 12))
                             .foregroundStyle(Theme.Colors.textSecondary)
                     }
                 }
-                
-                // Waveform Placeholder
-                VStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Theme.Colors.bgPrimary)
-                        .frame(height: 40)
-                        .overlay(
-                            Path { path in
-                                path.move(to: CGPoint(x: 0, y: 20))
-                                path.addLine(to: CGPoint(x: 260, y: 20))
-                            }
-                            .stroke(Theme.Colors.accentPrimary, style: StrokeStyle(lineWidth: 1, dash: [2]))
-                        )
-                    HStack {
-                        Text("0:00").font(.inter(size: 10))
-                        Spacer()
-                        Text(file.displayDuration).font(.inter(size: 10))
-                    }
-                    .foregroundStyle(Theme.Colors.textMuted)
+
+                // Тех-сетка — только поля, для которых реально есть данные.
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], spacing: 14) {
+                    TechInfoCell(label: "Key", value: file.analysis?.musicalKey?.rawValue ?? "—")
+                    TechInfoCell(label: "BPM", value: file.analysis?.bpm.map { String(format: "%.0f", $0) } ?? "—")
+                    TechInfoCell(label: loc["Формат"], value: file.displayCodec)
+                    TechInfoCell(label: loc["Частота"], value: file.displaySampleRate)
+                    TechInfoCell(label: loc["Битрейт"], value: file.displayBitrate)
+                    TechInfoCell(label: loc["Каналы"], value: channelsText(file.analysis?.channels))
                 }
-                
-                // Tech Grid
-                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], spacing: 16) {
-                    TechInfoCell(label: "Key", value: file.analysis?.musicalKey?.rawValue ?? "-")
-                    TechInfoCell(label: "BPM", value: file.analysis?.bpm.map { String(format: "%.0f", $0) } ?? "-")
-                    TechInfoCell(label: "Loudness", value: "-")
-                    TechInfoCell(label: "Format", value: file.displayCodec)
-                    TechInfoCell(label: "Sample Rate", value: file.displaySampleRate)
-                    TechInfoCell(label: "Bit Depth", value: "-")
-                    TechInfoCell(label: "Channels", value: "Stereo")
-                    TechInfoCell(label: "Bitrate", value: file.displayBitrate)
-                }
+                .padding(14)
+                .djPanel(radius: 12)
             }
         }
     }
@@ -129,45 +126,44 @@ struct InspectorInfoTab: View {
 
 struct InspectorMetadataTab: View {
     @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var loc: Localization
 
     var body: some View {
         VStack(spacing: 18) {
             ArtworkWell()
 
             VStack(spacing: 12) {
-                MetadataField(label: "Title", field: field(\.title))
-                MetadataField(label: "Artist", field: field(\.artist))
-                MetadataField(label: "Album", field: field(\.album))
-                MetadataField(label: "Album Artist", field: field(\.albumArtist))
-                MetadataField(label: "Genre", field: field(\.genre))
+                MetadataField(label: loc["Название"], field: field(\.title))
+                MetadataField(label: loc["Артист"], field: field(\.artist))
+                MetadataField(label: loc["Альбом"], field: field(\.album))
+                MetadataField(label: loc["Артист альбома"], field: field(\.albumArtist))
+                MetadataField(label: loc["Жанр"], field: field(\.genre))
 
                 HStack(spacing: 10) {
-                    MetadataField(label: "Year", field: field(\.year), compact: true)
-                    MetadataField(label: "Track", field: field(\.trackNumber), compact: true)
-                    MetadataField(label: "Disc", field: field(\.discNumber), compact: true)
+                    MetadataField(label: loc["Год"], field: field(\.year), compact: true)
+                    MetadataField(label: loc["Трек"], field: field(\.trackNumber), compact: true)
+                    MetadataField(label: loc["Диск"], field: field(\.discNumber), compact: true)
                 }
                 HStack(spacing: 10) {
                     MetadataField(label: "BPM", field: field(\.bpmTag), compact: true)
                     MetadataField(label: "Key", field: field(\.initialKey), compact: true)
                 }
 
-                MetadataField(label: "Composer", field: field(\.composer))
-                MetadataField(label: "Grouping", field: field(\.grouping))
-                MetadataField(label: "Publisher / Label", field: field(\.publisher))
-                MetadataField(label: "Comment", field: field(\.comments))
+                MetadataField(label: loc["Композитор"], field: field(\.composer))
+                MetadataField(label: loc["Группа"], field: field(\.grouping))
+                MetadataField(label: loc["Лейбл"], field: field(\.publisher))
+                MetadataField(label: loc["Комментарий"], field: field(\.comments))
                 MetadataField(label: "ISRC", field: field(\.isrc))
-                MetadataField(label: "Copyright", field: field(\.copyright))
+                MetadataField(label: loc["Копирайт"], field: field(\.copyright))
             }
 
-            VStack(spacing: 8) {
-                Text(appState.selectedAudioFileCount > 1
-                     ? "Edited fields will be applied to \(appState.selectedAudioFileCount) tracks."
-                     : "Only the fields you edit are written to the file.")
+            VStack(spacing: 10) {
+                Text(loc["В файл записываются только изменённые поля."])
                     .font(.inter(size: 10))
                     .foregroundStyle(Theme.Colors.textMuted)
                     .multilineTextAlignment(.center)
 
-                Button(appState.isApplyingMetadataEdits ? "Saving…" : "Save Metadata") {
+                Button(appState.isApplyingMetadataEdits ? loc["Сохранение…"] : loc["Сохранить метаданные"]) {
                     appState.applyMetadataEditDraft()
                 }
                 .buttonStyle(AccentButtonStyle())
@@ -202,6 +198,7 @@ struct InspectorMetadataTab: View {
 
 struct ArtworkWell: View {
     @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var loc: Localization
     @State private var isTargeted = false
 
     private var currentArtwork: NSImage? {
@@ -236,7 +233,7 @@ struct ArtworkWell: View {
                     VStack(spacing: 6) {
                         Image(systemName: "photo.on.rectangle.angled")
                             .font(.system(size: 26, weight: .light))
-                        Text(appState.metadataEditDraft.artworkMode == .remove ? "Artwork removed" : "Drop image or click Replace")
+                        Text(appState.metadataEditDraft.artworkMode == .remove ? loc["Обложка удалена"] : loc["Перетащите или нажмите «Заменить»"])
                             .font(.inter(size: 10))
                             .multilineTextAlignment(.center)
                     }
@@ -254,7 +251,7 @@ struct ArtworkWell: View {
                 Button {
                     appState.presentArtworkImporter()
                 } label: {
-                    Label("Replace", systemImage: "square.and.arrow.down")
+                    Label(loc["Заменить"], systemImage: "square.and.arrow.down")
                         .font(.inter(size: 11, weight: .medium))
                         .frame(maxWidth: .infinity)
                 }
@@ -263,7 +260,7 @@ struct ArtworkWell: View {
                 Button {
                     appState.removeArtwork()
                 } label: {
-                    Label("Remove", systemImage: "trash")
+                    Label(loc["Удалить"], systemImage: "trash")
                         .font(.inter(size: 11, weight: .medium))
                         .frame(maxWidth: .infinity)
                 }
@@ -312,15 +309,19 @@ struct InspectorTabButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Text(title)
-                    .font(.inter(size: 12, weight: isSelected ? .bold : .medium))
-                    .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : Theme.Colors.textSecondary)
-                
-                Rectangle()
-                    .fill(isSelected ? Theme.Colors.accentPrimary : Color.clear)
-                    .frame(height: 2)
-            }
+            Text(title)
+                .font(.inter(size: 12, weight: .semibold))
+                .foregroundStyle(isSelected ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius, style: .continuous)
+                        .fill(isSelected ? Theme.Colors.bgHover : Color.clear)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius, style: .continuous)
+                        .strokeBorder(isSelected ? Theme.Colors.border : Color.clear, lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
@@ -349,14 +350,14 @@ struct MetadataField: View {
     var compact: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
                 Text(label.uppercased())
-                    .font(.inter(size: 9, weight: .bold))
-                    .foregroundStyle(field.isEnabled ? Theme.Colors.accentHover : Theme.Colors.textMuted)
+                    .font(.inter(size: 9, weight: .semibold))
+                    .foregroundStyle(field.isEnabled ? Theme.Colors.accentBright : Theme.Colors.textMuted)
                 if field.isEnabled {
                     Circle()
-                        .fill(Theme.Colors.accentHover)
+                        .fill(Theme.Colors.accentBright)
                         .frame(width: 4, height: 4)
                 }
                 Spacer(minLength: 0)
@@ -366,15 +367,15 @@ struct MetadataField: View {
                 .textFieldStyle(.plain)
                 .font(.inter(size: 13))
                 .foregroundStyle(Theme.Colors.textPrimary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 7)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(Theme.Colors.bgPrimary)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5)
-                                .strokeBorder(field.isEnabled ? Theme.Colors.accentPrimary.opacity(0.6) : Theme.Colors.border, lineWidth: 1)
-                        )
+                    RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius, style: .continuous)
+                        .fill(Theme.Colors.bgBase)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius, style: .continuous)
+                        .strokeBorder(field.isEnabled ? Theme.Colors.accentPrimary.opacity(0.55) : Theme.Colors.border, lineWidth: 1)
                 )
         }
     }

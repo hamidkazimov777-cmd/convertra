@@ -14,17 +14,20 @@ struct TrackInspectorView: View {
                         Image(nsImage: nsImage)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 56, height: 56)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .frame(width: 60, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .hairline(10, color: Theme.Colors.border)
+                            .softShadow(0.6)
                     } else {
-                        RoundedRectangle(cornerRadius: 6)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(Theme.Colors.bgHover)
-                            .frame(width: 56, height: 56)
+                            .frame(width: 60, height: 60)
                             .overlay(
                                 Image(systemName: "music.note")
                                     .font(.title2)
                                     .foregroundColor(Theme.Colors.textMuted)
                             )
+                            .hairline(10, color: Theme.Colors.border)
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -41,82 +44,64 @@ struct TrackInspectorView: View {
                 }
                 
                 Divider().background(Theme.Colors.border)
-                
-                // Audio Analysis Engine 2.0 Metrics
+
+                // Метрики AudioAnalysisEngine 2.0
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("AUDIO ANALYSIS 2.0")
-                        .font(.inter(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.Colors.textMuted)
-                    
+                    SectionLabel(text: "Анализ аудио 2.0")
+
                     HStack(spacing: 16) {
-                        // Camelot Key Badge
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("CAMELOT KEY")
-                                .font(.inter(size: 10, weight: .semibold))
-                                .foregroundStyle(Theme.Colors.textMuted)
-                            
+                        // Camelot
+                        VStack(alignment: .leading, spacing: 5) {
+                            SectionLabel(text: "Camelot")
                             CamelotBadgeView(
                                 camelotKey: file.analysis?.camelotKey ?? file.analysis?.musicalKey?.camelotKey,
                                 isCompact: false
                             )
                         }
-                        
-                        // Musical Key Text
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("MUSICAL KEY")
-                                .font(.inter(size: 10, weight: .semibold))
-                                .foregroundStyle(Theme.Colors.textMuted)
-                            
+
+                        // Тональность
+                        VStack(alignment: .leading, spacing: 5) {
+                            SectionLabel(text: "Тональность")
                             Text(file.analysis?.musicalKey?.rawValue ?? "—")
-                                .font(.inter(size: 13, weight: .bold))
+                                .font(.inter(size: 14, weight: .bold))
                                 .foregroundStyle(Theme.Colors.textPrimary)
                         }
-                        
+
                         Spacer()
-                        
-                        // BPM
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("TEMPO")
-                                .font(.inter(size: 10, weight: .semibold))
-                                .foregroundStyle(Theme.Colors.textMuted)
-                            
-                            Text(file.analysis?.bpm.map { String(format: "%.2f BPM", $0) } ?? "—")
-                                .font(.inter(size: 13, weight: .bold))
-                                .foregroundStyle(Theme.Colors.accentPrimary)
+
+                        // Темп
+                        VStack(alignment: .trailing, spacing: 5) {
+                            SectionLabel(text: "Темп")
+                            Text(file.analysis?.bpm.map { String(format: "%.1f", $0) } ?? "—")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(Theme.Colors.energy)
                         }
                     }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Theme.Colors.bgBase)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .strokeBorder(Theme.Colors.border.opacity(0.6), lineWidth: 1)
-                            )
-                    )
+                    .padding(14)
+                    .djPanel(radius: 12)
                     
                     // Confidence Scores
                     if let analysis = file.analysis {
                         HStack {
                             if analysis.keyConfidence > 0 {
-                                HStack(spacing: 4) {
-                                    Text("Key Conf:")
+                                HStack(spacing: 5) {
+                                    Text("Key")
                                         .font(.inter(size: 10, weight: .medium))
                                         .foregroundStyle(Theme.Colors.textMuted)
                                     Text(String(format: "%.0f%%", analysis.keyConfidence * 100.0))
                                         .font(.inter(size: 10, weight: .bold))
-                                        .foregroundStyle(analysis.keyConfidence >= 0.70 ? Color.green : Color.orange)
+                                        .foregroundStyle(analysis.keyConfidence >= 0.70 ? Color(hex: "#4ADE80") : Theme.Colors.energy)
                                 }
                             }
                             Spacer()
                             if analysis.bpmConfidence > 0 {
-                                HStack(spacing: 4) {
-                                    Text("BPM Conf:")
+                                HStack(spacing: 5) {
+                                    Text("BPM")
                                         .font(.inter(size: 10, weight: .medium))
                                         .foregroundStyle(Theme.Colors.textMuted)
                                     Text(String(format: "%.0f%%", analysis.bpmConfidence * 100.0))
                                         .font(.inter(size: 10, weight: .bold))
-                                        .foregroundStyle(analysis.bpmConfidence >= 0.70 ? Color.green : Color.orange)
+                                        .foregroundStyle(analysis.bpmConfidence >= 0.70 ? Color(hex: "#4ADE80") : Theme.Colors.energy)
                                 }
                             }
                         }
@@ -127,10 +112,16 @@ struct TrackInspectorView: View {
                 Spacer()
             } else {
                 Spacer()
-                Text("Select a track to inspect metadata")
-                    .font(.inter(size: 13, weight: .medium))
-                    .foregroundStyle(Theme.Colors.textMuted)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                VStack(spacing: 10) {
+                    Image(systemName: "waveform.circle")
+                        .font(.system(size: 32, weight: .light))
+                        .foregroundStyle(Theme.Colors.textMuted)
+                    Text("Выберите трек,\nчтобы увидеть метаданные")
+                        .multilineTextAlignment(.center)
+                        .font(.inter(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.Colors.textMuted)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
                 Spacer()
             }
         }

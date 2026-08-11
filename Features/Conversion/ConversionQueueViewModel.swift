@@ -6,9 +6,14 @@ import SwiftUI
 final class ConversionQueueViewModel: ObservableObject {
     @Published private(set) var jobs: [ConversionJob] = []
     @Published var selectedTargetFormat: ConversionSettings.OutputFormat = .mp3
+    /// Last destination folder chosen this session — reused so batch conversions
+    /// don't re-prompt for a folder every single time.
+    @Published var lastOutputFolder: URL?
     
     private let engine = AudioConversionEngine()
-    
+    /// Running conversion tasks by job id, so a job can be cancelled mid-flight.
+    private var tasks: [UUID: Task<Void, Never>] = [:]
+
     var totalJobs: Int { jobs.count }
     
     var completedJobs: Int {
@@ -42,23 +47,52 @@ final class ConversionQueueViewModel: ObservableObject {
         let pendingJobs = jobs.filter { $0.status == .queued || $0.status == .failed }
         for job in pendingJobs {
             updateStatus(for: job.id, status: .preparing)
-            Task {
+            let id = job.id
+            tasks[id] = Task { [weak self] in
+                guard let self else { return }
                 do {
-                    updateStatus(for: job.id, status: .converting)
-                    try await engine.convert(job: job)
-                    updateStatus(for: job.id, status: .completed, progress: 1.0)
+                    await self.updateStatus(for: id, status: .converting)
+                    try await self.engine.convert(job: job)
+                    await self.updateStatus(for: id, status: .completed, progress: 1.0)
+                } catch is CancellationError {
+                    await self.updateStatus(for: id, status: .cancelled)
                 } catch {
-                    updateStatus(for: job.id, status: .failed, error: error.localizedDescription)
+                    await self.updateStatus(for: id, status: .failed, error: error.localizedDescription)
                 }
+                await self.clearTask(id)
             }
         }
     }
-    
+
+    /// Stop a single job (kills the ffmpeg process if it is already running).
+    func cancel(job: ConversionJob) {
+        if let task = tasks[job.id] {
+            task.cancel()
+        } else if job.status == .queued || job.status == .preparing {
+            updateStatus(for: job.id, status: .cancelled)
+        }
+    }
+
+    /// Stop every job that hasn't finished yet.
+    func cancelAll() {
+        for task in tasks.values { task.cancel() }
+    }
+
+    var hasActiveJobs: Bool {
+        jobs.contains { $0.status == .queued || $0.status == .preparing || $0.status == .converting }
+    }
+
+    private func clearTask(_ id: UUID) {
+        tasks[id] = nil
+    }
+
     func clearCompleted() {
         jobs.removeAll { $0.status == .completed }
     }
-    
+
     func remove(job: ConversionJob) {
+        tasks[job.id]?.cancel()
+        tasks[job.id] = nil
         jobs.removeAll { $0.id == job.id }
     }
     

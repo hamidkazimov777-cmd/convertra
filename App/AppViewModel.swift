@@ -23,11 +23,16 @@ final class AppViewModel: ObservableObject {
         case folder(URL)
     }
 
+    enum InspectorTab: Equatable {
+        case info
+        case metadata
+    }
+
     @Published var selectedSection: NavigationSelection = .library
+    @Published var inspectorTab: InspectorTab = .info
     @Published private(set) var library: [AudioFile] = []
     @Published private(set) var duplicateGroups: [DuplicateGroup] = []
     @Published var selectedAudioFileIDs = Set<AudioFile.ID>()
-    @Published var isSelectionModeActive = false
     @Published var lastSelectedTrackID: AudioFile.ID?
     @Published var requestedPlaybackTrackID: AudioFile.ID?
     @Published var playbackToggleTrigger: UUID = UUID()
@@ -62,6 +67,9 @@ final class AppViewModel: ObservableObject {
     private var sourceBookmarks: [Data] = []
     private var trackBookmarks: [AudioFile.ID: Data] = [:]
 
+    /// Localized status/error strings share the UI language.
+    private var loc: Localization { .shared }
+
     init() {
         Task { [weak self] in
             await self?.restorePersistedLibrary()
@@ -95,7 +103,7 @@ final class AppViewModel: ObservableObject {
 
     func handleFileImport(_ result: Result<[URL], Error>) {
         guard !isLibraryProcessing else {
-            setLibraryStatus("Library is busy. Please wait for the current operation to finish.", severity: .warning)
+            setLibraryStatus(loc["Библиотека занята. Дождитесь завершения текущей операции."], severity: .warning)
             return
         }
 
@@ -103,16 +111,15 @@ final class AppViewModel: ObservableObject {
         case let .success(urls):
             Task { await scanAndAdd(urls: urls) }
         case let .failure(error):
-            presentLibraryError("Could not access the selected items: \(error.localizedDescription)")
+            presentLibraryError(String(format: loc["Не удалось получить доступ к выбранным объектам: %@"], error.localizedDescription))
         }
     }
 
     func clearLibrarySelection() {
         selectedAudioFileIDs.removeAll()
-        isSelectionModeActive = false
         lastSelectedTrackID = nil
     }
-    
+
     func selectNextTrack() {
         guard let currentId = selectedAudioFileIDs.first,
               let currentIndex = library.firstIndex(where: { $0.id == currentId }),
@@ -144,16 +151,14 @@ final class AppViewModel: ObservableObject {
         }
         
         selectedAudioFileIDs.removeAll()
-        isSelectionModeActive = false
         lastSelectedTrackID = nil
         analyzeForDuplicates()
         Task { await persistLibrary() }
     }
-    
+
     func clearLibrary() {
         library.removeAll()
         selectedAudioFileIDs.removeAll()
-        isSelectionModeActive = false
         lastSelectedTrackID = nil
         sourceBookmarks.removeAll()
         trackBookmarks.removeAll()
@@ -199,7 +204,6 @@ final class AppViewModel: ObservableObject {
     
     func deselectAll() {
         selectedAudioFileIDs.removeAll()
-        isSelectionModeActive = false
         lastSelectedTrackID = nil
     }
 
@@ -232,21 +236,21 @@ final class AppViewModel: ObservableObject {
                     metadataEditDraft.artworkData = try await artworkCache.loadImageData(from: url)
                     metadataEditDraft.artworkMode = .replace
                 } catch {
-                    presentLibraryError("Could not read the selected artwork: \(error.localizedDescription)")
+                    presentLibraryError(String(format: loc["Не удалось прочитать выбранную обложку: %@"], error.localizedDescription))
                 }
             }
         case let .failure(error):
-            presentLibraryError("Could not access the selected artwork: \(error.localizedDescription)")
+            presentLibraryError(String(format: loc["Не удалось получить доступ к выбранной обложке: %@"], error.localizedDescription))
         }
     }
 
     func applyMetadataEditDraft() {
         guard !selectedAudioFiles.isEmpty else {
-            presentLibraryError("Select at least one track before applying metadata changes.")
+            presentLibraryError(loc["Выберите хотя бы один трек перед изменением метаданных."])
             return
         }
         guard metadataEditDraft.hasChanges else {
-            setLibraryStatus("Choose at least one metadata field to apply.", severity: .warning)
+            setLibraryStatus(loc["Выберите хотя бы одно поле метаданных."], severity: .warning)
             return
         }
 
@@ -271,7 +275,7 @@ final class AppViewModel: ObservableObject {
 
     private func scanAndAdd(urls: [URL]) async {
         guard !urls.isEmpty else {
-            presentLibraryError("No accessible files or folders were provided.")
+            presentLibraryError(loc["Нет доступных файлов или папок."])
             return
         }
 
@@ -282,7 +286,7 @@ final class AppViewModel: ObservableObject {
 
         isScanningLibrary = true
         setLibraryStatus(
-            "Scanning \(urls.count) selected item\(urls.count == 1 ? "" : "s")…",
+            String(format: loc["Сканирование выбранного (%d)…"], urls.count),
             severity: .information
         )
 
@@ -298,7 +302,7 @@ final class AppViewModel: ObservableObject {
         let addedCount = newFiles.count
         if addedCount == 0 {
             setLibraryStatus(
-                "No new supported audio files found. Skipped \(result.skippedItemCount) unsupported or inaccessible item\(result.skippedItemCount == 1 ? "" : "s").",
+                String(format: loc["Новых поддерживаемых аудиофайлов не найдено. Пропущено: %d."], result.skippedItemCount),
                 severity: .warning
             )
             return
@@ -306,7 +310,7 @@ final class AppViewModel: ObservableObject {
 
         isAnalyzingTechnicalMetadata = true
         setLibraryStatus(
-            "Reading technical metadata for \(addedCount) track\(addedCount == 1 ? "" : "s")…",
+            String(format: loc["Чтение технических метаданных (%d)…"], addedCount),
             severity: .information
         )
         let analysisResults = await technicalMetadataExtractor.analyze(urls: newFiles.map(\.url))
@@ -326,7 +330,7 @@ final class AppViewModel: ObservableObject {
 
         isReadingMetadata = true
         setLibraryStatus(
-            "Reading tags and artwork for \(addedCount) track\(addedCount == 1 ? "" : "s")…",
+            String(format: loc["Чтение тегов и обложек (%d)…"], addedCount),
             severity: .information
         )
         let metadataResults = await metadataExtractor.read(files: newFiles)
@@ -360,27 +364,27 @@ final class AppViewModel: ObservableObject {
         let metadataReadCount = metadataByAudioFileID.count
         let failedMetadataReadCount = addedCount - metadataReadCount
         let skippedDescription = result.skippedItemCount > 0
-            ? " Skipped \(result.skippedItemCount) unsupported or inaccessible item\(result.skippedItemCount == 1 ? "" : "s")."
+            ? String(format: loc[" Пропущено: %d."], result.skippedItemCount)
             : ""
         let analysisDescription = failedAnalysisCount > 0
-            ? " Technical metadata was unavailable for \(failedAnalysisCount) track\(failedAnalysisCount == 1 ? "" : "s")."
-            : " Read technical metadata for all tracks."
+            ? String(format: loc[" Технические метаданные недоступны для %d."], failedAnalysisCount)
+            : loc[" Технические метаданные прочитаны для всех треков."]
         let metadataDescription = failedMetadataReadCount > 0
-            ? " Metadata was unavailable for \(failedMetadataReadCount) track\(failedMetadataReadCount == 1 ? "" : "s")."
-            : " Read tags for \(metadataReadCount) track\(metadataReadCount == 1 ? "" : "s")."
+            ? String(format: loc[" Теги недоступны для %d."], failedMetadataReadCount)
+            : String(format: loc[" Теги прочитаны для %d."], metadataReadCount)
         let wasSaved = await persistLibrary()
         let persistenceDescription = wasSaved
-            ? " Library saved locally."
-            : " The library could not be saved locally."
+            ? loc[" Библиотека сохранена."]
+            : loc[" Не удалось сохранить библиотеку."]
         setLibraryStatus(
-            "Added \(addedCount) track\(addedCount == 1 ? "" : "s").\(analysisDescription)\(metadataDescription)\(skippedDescription)\(persistenceDescription)",
+            String(format: loc["Добавлено треков: %d."], addedCount) + analysisDescription + metadataDescription + skippedDescription + persistenceDescription,
             severity: failedAnalysisCount > 0 || failedMetadataReadCount > 0 || result.skippedItemCount > 0 || !wasSaved ? .warning : .information
         )
         analyzeForDuplicates()
     }
 
     private func restorePersistedLibrary() async {
-        setLibraryStatus("Restoring saved library…", severity: .information)
+        setLibraryStatus(loc["Восстановление сохранённой библиотеки…"], severity: .information)
 
         do {
             guard let snapshot = try await libraryPersistenceStore.load() else {
@@ -402,18 +406,18 @@ final class AppViewModel: ObservableObject {
 
             if restoration.unavailableTrackCount > 0 {
                 setLibraryStatus(
-                    "Restored \(library.count) track\(library.count == 1 ? "" : "s"). \(restoration.unavailableTrackCount) saved track\(restoration.unavailableTrackCount == 1 ? " was" : "s were") unavailable.",
+                    String(format: loc["Восстановлено треков: %d. Недоступно: %d."], library.count, restoration.unavailableTrackCount),
                     severity: .warning
                 )
             } else {
                 setLibraryStatus(
-                    "Restored \(library.count) track\(library.count == 1 ? "" : "s") from the saved library.",
+                    String(format: loc["Восстановлено треков из сохранённой библиотеки: %d."], library.count),
                     severity: .information
                 )
             }
         } catch {
             setLibraryStatus(
-                "Saved library could not be restored: \(error.localizedDescription)",
+                String(format: loc["Не удалось восстановить сохранённую библиотеку: %@"], error.localizedDescription),
                 severity: .error
             )
         }
@@ -449,7 +453,7 @@ final class AppViewModel: ObservableObject {
 
             isApplyingMetadataEdits = true
             setLibraryStatus(
-                "Applying metadata changes to \(selectedIDs.count) track\(selectedIDs.count == 1 ? "" : "s")…",
+                String(format: loc["Применение изменений метаданных (%d)…"], selectedIDs.count),
                 severity: .information
             )
 
@@ -479,12 +483,12 @@ final class AppViewModel: ObservableObject {
 
             guard wasSaved else {
                 library = previousLibrary
-                presentLibraryError("Metadata changes could not be saved locally. No library changes were kept.")
+                presentLibraryError(loc["Изменения метаданных не удалось сохранить. Изменения не применены."])
                 return
             }
 
             setLibraryStatus(
-                "Applied metadata changes to \(selectedIDs.count) track\(selectedIDs.count == 1 ? "" : "s") and saved the library.",
+                String(format: loc["Изменения метаданных применены (%d), библиотека сохранена."], selectedIDs.count),
                 severity: .information
             )
             prepareMetadataEditDraft()
@@ -561,7 +565,7 @@ final class AppViewModel: ObservableObject {
                     if error == nil {
                         self?.removeFolderFromLibrary(url: url)
                     } else {
-                        self?.presentLibraryError("Could not move folder to trash: \(error!.localizedDescription)")
+                        self?.presentLibraryError(String(format: Localization.shared["Не удалось переместить папку в Корзину: %@"], error!.localizedDescription))
                     }
                 }
             }

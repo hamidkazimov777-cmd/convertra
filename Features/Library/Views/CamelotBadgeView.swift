@@ -22,25 +22,31 @@ struct CamelotBadgeView: View {
 
     var body: some View {
         if let key = camelotKey {
-            HStack(spacing: 3) {
+            if isCompact {
+                // Компактно (список) — чистый цветной моно-код, как в ForzaDJ.
                 Text(key.code)
-                    .font(.system(size: isCompact ? 11 : 13, weight: .bold, design: .monospaced))
-                    .foregroundColor(textColor(for: key))
-            }
-            .padding(.horizontal, isCompact ? 6 : 10)
-            .padding(.vertical, isCompact ? 3 : 5)
-            .background(
-                RoundedRectangle(cornerRadius: isCompact ? 5 : 8)
-                    .fill(backgroundColor(for: key))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: isCompact ? 5 : 8)
-                            .strokeBorder(borderColor(for: key), lineWidth: 1)
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .foregroundColor(borderColor(for: key))
+            } else {
+                // Крупно (инспектор) — цветная пилюля с мягкой заливкой.
+                Text(key.code)
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundColor(borderColor(for: key))
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(backgroundColor(for: key))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    .strokeBorder(borderColor(for: key).opacity(0.55), lineWidth: 1)
+                            )
                     )
-            )
+            }
         } else {
             Text("—")
-                .font(.system(size: isCompact ? 11 : 13, weight: .medium))
-                .foregroundColor(.secondary)
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundColor(Theme.Colors.textMuted)
         }
     }
 

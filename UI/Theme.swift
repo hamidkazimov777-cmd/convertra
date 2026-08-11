@@ -1,36 +1,93 @@
 import SwiftUI
 
+// MARK: - Design System (ForzaDJ visual language)
+// Deep cold-graphite surfaces, violet primary, amber "energy" accent,
+// hairline borders, layered soft shadows + signature violet glow.
+
 enum Theme {
     enum Colors {
-        // Backgrounds
-        static let bgBase = Color(hex: "#050505")
-        static let bgPrimary = Color(hex: "#080808")
-        static let bgSecondary = Color(hex: "#0D0D0D")
-        static let bgHover = Color(hex: "#111111")
-        static let bgSelected = Color(hex: "#1A1A1A")
-        
-        // Accents (Olive/Khaki)
-        static let accentPrimary = Color(hex: "#6B705C")
-        static let accentHover = Color(hex: "#939B7F")
-        static let accentPressed = Color(hex: "#7A8068")
-        static let accentMuted = Color(hex: "#8A9075")
-        
-        // Text
-        static let textPrimary = Color.white
-        static let textSecondary = Color(hex: "#A0A0A0")
-        static let textMuted = Color(hex: "#8E8E8E")
-        
-        // Borders
-        static let border = Color(hex: "#222222")
+        // MARK: Backgrounds (layered graphite, cold violet undertone)
+        static let bgBase = Color(hex: "#0B0C0F")      // deepest — sidebar / chrome
+        static let bgPrimary = Color(hex: "#0E0E11")   // content canvas
+        static let bgSecondary = Color(hex: "#18181C") // raised card / panel
+        static let bgElevated = Color(hex: "#1B1C21")  // popover / menu
+        static let bgHover = Color(hex: "#1E1F23")     // hover surface
+        static let bgSelected = Color(hex: "#23253A")  // selected (violet-tinted)
+
+        // MARK: Primary accent (violet → indigo)
+        static let accentPrimary = Color(hex: "#676CF4")
+        static let accentBright = Color(hex: "#7689FF")
+        static let accentDeep = Color(hex: "#574EDD")
+        static let accentHover = Color(hex: "#7C81FF")
+        static let accentPressed = Color(hex: "#574EDD")
+        static let accentMuted = Color(hex: "#8E92E8")
+
+        // MARK: Energy accent (warm amber — ratings, hot signals)
+        static let energy = Color(hex: "#EFA831")
+        static let energyBright = Color(hex: "#FFC24D")
+
+        // MARK: Semantic
+        static let destructive = Color(hex: "#FF6467")
+
+        // MARK: Text
+        static let textPrimary = Color(hex: "#FAFAFA")
+        static let textSecondary = Color(hex: "#A3A4AB")
+        static let textMuted = Color(hex: "#6E7079")
+
+        // MARK: Hairline borders (white on dark, by opacity)
+        static let border = Color.white.opacity(0.10)
+        static let borderStrong = Color.white.opacity(0.16)
+        static let borderSubtle = Color.white.opacity(0.06)
+
+        // MARK: Gradients
+        static let accentGradient = LinearGradient(
+            colors: [accentBright, accentDeep],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
+        /// Signature energy-colored waveform ramp (low → hot).
+        static let waveformRamp: [Color] = [
+            Color(hex: "#4ADE80"), // green — calm
+            Color(hex: "#A3E635"), // lime
+            Color(hex: "#EAB308"), // yellow
+            Color(hex: "#EFA831"), // amber
+            Color(hex: "#F97316"), // orange — hot
+        ]
     }
-    
+
     enum Layout {
-        static let sidebarWidth: CGFloat = 220
+        static let sidebarWidth: CGFloat = 232
         static let inspectorWidth: CGFloat = 300
-        static let playerHeight: CGFloat = 85
-        
-        static let cornerRadius: CGFloat = 6
-        static let buttonRadius: CGFloat = 4
+        static let playerHeight: CGFloat = 88
+
+        static let cornerRadius: CGFloat = 10
+        static let cardRadius: CGFloat = 14
+        static let buttonRadius: CGFloat = 9
+        static let pillRadius: CGFloat = 999
+    }
+}
+
+// MARK: - Elevation & surface modifiers
+
+extension View {
+    /// Soft layered elevation shadow (depth without harshness).
+    func softShadow(_ strength: Double = 1.0) -> some View {
+        self
+            .shadow(color: .black.opacity(0.34 * strength), radius: 16 * strength, x: 0, y: 8 * strength)
+            .shadow(color: .black.opacity(0.24 * strength), radius: 4, x: 0, y: 2)
+    }
+
+    /// Signature violet glow beneath primary/brand elements.
+    func accentGlow(_ strength: Double = 1.0) -> some View {
+        self
+            .shadow(color: Theme.Colors.accentPrimary.opacity(0.28 * strength), radius: 10 * strength, x: 0, y: 4)
+    }
+
+    /// Hairline stroke overlay with a subtle top-light highlight.
+    func hairline(_ radius: CGFloat = Theme.Layout.cornerRadius, color: Color = Theme.Colors.border) -> some View {
+        overlay(
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .strokeBorder(color, lineWidth: 1)
+        )
     }
 }
 
@@ -50,7 +107,7 @@ extension Color {
         default:
             (a, r, g, b) = (1, 1, 1, 0)
         }
-        
+
         self.init(
             .sRGB,
             red: Double(r) / 255,

@@ -49,23 +49,33 @@ actor FFmpegCommandRunner {
 
         try process.run()
 
-        var outputData = Data()
-        // Read asynchronously to prevent pipe buffer deadlock
-        for try await byte in pipe.fileHandleForReading.bytes {
-            outputData.append(byte)
-        }
+        // Terminate the ffmpeg process if the surrounding Task is cancelled
+        // (e.g. the user stops the conversion job).
+        return try await withTaskCancellationHandler {
+            var outputData = Data()
+            // Read asynchronously to prevent pipe buffer deadlock
+            for try await byte in pipe.fileHandleForReading.bytes {
+                outputData.append(byte)
+            }
 
-        process.waitUntilExit()
+            process.waitUntilExit()
 
-        let outputString = String(decoding: outputData, as: UTF8.self)
+            if Task.isCancelled {
+                throw CancellationError()
+            }
 
-        if process.terminationStatus == 0 {
-            return outputString
-        } else {
-            throw FFmpegError.executionFailed(
-                exitCode: Int(process.terminationStatus),
-                errorOutput: outputString
-            )
+            let outputString = String(decoding: outputData, as: UTF8.self)
+
+            if process.terminationStatus == 0 {
+                return outputString
+            } else {
+                throw FFmpegError.executionFailed(
+                    exitCode: Int(process.terminationStatus),
+                    errorOutput: outputString
+                )
+            }
+        } onCancel: {
+            process.terminate()
         }
     }
 }

@@ -5,6 +5,7 @@ struct BottomPlayerView: View {
     @EnvironmentObject private var appState: AppViewModel
     @StateObject private var viewModel = PlayerViewModel()
     @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
+    @EnvironmentObject private var loc: Localization
     
     var body: some View {
         HStack(spacing: 0) {
@@ -16,61 +17,54 @@ struct BottomPlayerView: View {
             HStack(spacing: 16) {
                 playbackControls
                 
-                // Waveform Scrubber
+                // Энергетическая волна-скраббер
                 ZStack {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Theme.Colors.bgPrimary)
-                    
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Theme.Colors.bgBase.opacity(0.6))
+                        .hairline(8, color: Theme.Colors.borderSubtle)
+
                     if viewModel.currentTrack != nil {
                         if viewModel.isGeneratingWaveform {
-                            ProgressView().controlSize(.small)
+                            ProgressView().controlSize(.small).tint(Theme.Colors.accentPrimary)
                         } else if !viewModel.waveformData.isEmpty {
                             GeometryReader { geo in
                                 let progress = viewModel.duration > 0 ? CGFloat(viewModel.currentPosition / viewModel.duration) : 0
-                                
-                                ZStack(alignment: .leading) {
-                                    WaveformShape(samples: viewModel.waveformData)
-                                        .fill(Theme.Colors.bgHover)
-                                    
-                                    WaveformShape(samples: viewModel.waveformData)
-                                        .fill(Theme.Colors.accentPrimary)
-                                        .mask(
-                                            Rectangle()
-                                                .frame(width: geo.size.width * progress)
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                        )
-                                        .animation(.linear(duration: 0.1), value: progress)
-                                }
-                                .contentShape(Rectangle())
-                                .gesture(
-                                    DragGesture(minimumDistance: 0)
-                                        .onChanged { value in
-                                            let percentage = max(0, min(1, value.location.x / geo.size.width))
-                                            viewModel.seek(to: viewModel.duration * Double(percentage))
-                                        }
-                                )
+
+                                EnergyWaveformView(samples: viewModel.waveformData, progress: progress)
+                                    .animation(.linear(duration: 0.1), value: progress)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
+                                    .contentShape(Rectangle())
+                                    .gesture(
+                                        DragGesture(minimumDistance: 0)
+                                            .onChanged { value in
+                                                let percentage = max(0, min(1, (value.location.x - 8) / (geo.size.width - 16)))
+                                                viewModel.seek(to: viewModel.duration * Double(percentage))
+                                            }
+                                    )
                             }
                         } else {
-                            // Fallback if waveform is missing but track is loaded
                             Path { path in
-                                path.move(to: CGPoint(x: 0, y: 20))
+                                path.move(to: CGPoint(x: 8, y: 20))
                                 path.addLine(to: CGPoint(x: 1000, y: 20))
                             }
-                            .stroke(Theme.Colors.textMuted, style: StrokeStyle(lineWidth: 1, dash: [2]))
+                            .stroke(Theme.Colors.textMuted.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [2]))
                         }
-                        
-                        // Time overlays
+
+                        // Тайминги
                         HStack {
                             Text(formatTime(viewModel.currentPosition))
+                                .foregroundStyle(Theme.Colors.textPrimary)
                             Spacer()
                             Text(formatTime(viewModel.duration))
+                                .foregroundStyle(Theme.Colors.textMuted)
                         }
-                        .font(.inter(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                        .padding(.horizontal, 8)
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .padding(.horizontal, 10)
+                        .allowsHitTesting(false)
                     }
                 }
-                .frame(height: 40)
+                .frame(height: 48)
                 
                 // Volume
                 HStack(spacing: 8) {
@@ -156,7 +150,7 @@ struct BottomPlayerView: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("No Track Selected")
+                    Text(loc["Трек не выбран"])
                         .font(.inter(size: 13, weight: .bold))
                         .foregroundStyle(Theme.Colors.textMuted)
                 }
@@ -191,12 +185,19 @@ struct BottomPlayerView: View {
             
             Button(action: { viewModel.togglePlayback() }) {
                 Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.inter(size: 18))
-                    .foregroundStyle(Theme.Colors.bgBase)
-                    .frame(width: 36, height: 36)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
                     .background(
-                        Circle().fill(viewModel.currentTrack == nil ? Theme.Colors.bgHover : Theme.Colors.accentPrimary)
+                        ZStack {
+                            Circle().fill(viewModel.currentTrack == nil
+                                ? AnyShapeStyle(Theme.Colors.bgHover)
+                                : AnyShapeStyle(Theme.Colors.accentGradient))
+                            Circle().fill(LinearGradient(colors: [.white.opacity(0.22), .clear],
+                                                         startPoint: .top, endPoint: .bottom))
+                        }
                     )
+                    .accentGlow(viewModel.currentTrack == nil ? 0 : 0.8)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.currentTrack == nil)
@@ -244,11 +245,11 @@ struct BottomPlayerView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Conversion Queue")
+                        Text(loc["Очередь конвертации"])
                             .font(.inter(size: 11, weight: .bold))
                             .foregroundStyle(Theme.Colors.textPrimary)
                         
-                        Text("\(conversionQueue.completedJobs)/\(conversionQueue.totalJobs) files")
+                        Text("\(conversionQueue.completedJobs)/\(conversionQueue.totalJobs) \(loc["файлов"])")
                             .font(.inter(size: 10))
                             .foregroundStyle(Theme.Colors.textSecondary)
                     }
@@ -264,7 +265,7 @@ struct BottomPlayerView: View {
                 }
                 .padding(.trailing, 24)
             } else {
-                Text("Queue Empty")
+                Text(loc["Очередь пуста"])
                     .font(.inter(size: 11))
                     .foregroundStyle(Theme.Colors.textMuted)
                     .padding(.trailing, 24)

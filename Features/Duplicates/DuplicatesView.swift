@@ -2,36 +2,42 @@ import SwiftUI
 
 struct DuplicatesView: View {
     @EnvironmentObject private var appState: AppViewModel
-    
+    @EnvironmentObject private var loc: Localization
+
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            // Заголовок
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Duplicates")
-                        .font(.title2.weight(.bold))
-                    Text("Potential duplicate tracks found in your library. Select tracks you want to move to trash.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    Text(loc["Дубликаты"])
+                        .font(.inter(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                    Text(loc["Найдены возможные дубликаты. Отметьте треки для перемещения в Корзину."])
+                        .font(.inter(size: 13))
+                        .foregroundStyle(Theme.Colors.textSecondary)
                 }
                 Spacer()
             }
             .padding(20)
             .background(Theme.Colors.bgPrimary)
-            
+
             Divider()
                 .background(Theme.Colors.border)
-            
+
             if appState.duplicateGroups.isEmpty {
-                VStack(spacing: 16) {
+                VStack(spacing: 14) {
                     Spacer()
-                    Image(systemName: "doc.on.doc")
-                        .font(.system(size: 48))
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                    Text("No Duplicates Found")
-                        .font(.headline)
+                    ZStack {
+                        Circle().fill(Theme.Colors.accentPrimary.opacity(0.12)).frame(width: 76, height: 76)
+                        Image(systemName: "checkmark.seal")
+                            .font(.system(size: 30, weight: .regular))
+                            .foregroundStyle(Theme.Colors.accentBright)
+                    }
+                    Text(loc["Дубликатов не найдено"])
+                        .font(.inter(size: 16, weight: .bold))
                         .foregroundStyle(Theme.Colors.textPrimary)
-                    Text("Your library looks clean.")
+                    Text(loc["Библиотека выглядит чистой."])
+                        .font(.inter(size: 13))
                         .foregroundStyle(Theme.Colors.textSecondary)
                     Spacer()
                 }
@@ -43,13 +49,14 @@ struct DuplicatesView: View {
                         ForEach(appState.duplicateGroups) { group in
                             VStack(alignment: .leading, spacing: 0) {
                                 // Header
-                                Text("\(group.tracks.first?.displayArtist ?? "") - \(group.tracks.first?.displayTitle ?? "")")
-                                    .font(.headline)
+                                Text("\(group.tracks.first?.displayArtist ?? "") — \(group.tracks.first?.displayTitle ?? "")")
+                                    .font(.inter(size: 14, weight: .semibold))
                                     .foregroundStyle(Theme.Colors.textPrimary)
+                                    .lineLimit(1)
                                     .padding(.horizontal, 20)
                                     .padding(.vertical, 12)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Theme.Colors.bgHover.opacity(0.3))
+                                    .background(Theme.Colors.bgHover.opacity(0.4))
                                 
                                 Divider()
                                     .background(Theme.Colors.border)
@@ -74,21 +81,23 @@ struct DuplicatesView: View {
 struct DuplicateTrackRow: View {
     let track: AudioFile
     @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var loc: Localization
     @State private var isHovered = false
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(track.fileName)
-                    .font(.subheadline.weight(.medium))
+                    .font(.inter(size: 13, weight: .medium))
                     .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
                 HStack(spacing: 12) {
                     Label(track.displayDuration, systemImage: "clock")
                     Label(track.displayCodec, systemImage: "waveform")
                     Label(track.displayBitrate, systemImage: "speedometer")
                     Label(track.displaySampleRate, systemImage: "metronome")
                 }
-                .font(.caption)
+                .font(.inter(size: 11))
                 .foregroundStyle(Theme.Colors.textSecondary)
             }
             Spacer()
@@ -96,13 +105,13 @@ struct DuplicateTrackRow: View {
                 appState.moveTrackToTrash(track.id)
             }) {
                 Image(systemName: "trash")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.Colors.destructive)
                     .padding(8)
-                    .background(isHovered ? Color.red.opacity(0.1) : Color.clear)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .background(isHovered ? Theme.Colors.destructive.opacity(0.12) : Color.clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.plain)
-            .help("Move to Trash")
+            .help(loc["Переместить в Корзину Mac"])
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 20)

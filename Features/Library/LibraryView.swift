@@ -5,6 +5,7 @@ import AppKit
 struct LibraryView: View {
     var filterFolder: URL? = nil
     @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var loc: Localization
     @State private var isDropTargeted = false
     @State private var searchText = ""
 
@@ -16,11 +17,17 @@ struct LibraryView: View {
             
             GeometryReader { geo in
                 VStack(spacing: 0) {
-                    DropZoneView()
-                        .frame(height: geo.size.height * 0.45)
-                    
-                    Divider().background(Theme.Colors.border)
-                    
+                    // Крупная drop-зона нужна только пока библиотека пуста —
+                    // это первый экран новичка. Как только треки есть, отдаём
+                    // всё место списку (drag&drop продолжает работать на всём вью,
+                    // плюс кнопка «Импорт» в шапке).
+                    if appState.library.isEmpty {
+                        DropZoneView()
+                            .frame(height: geo.size.height * 0.45)
+
+                        Divider().background(Theme.Colors.border)
+                    }
+
                     VStack(spacing: 0) {
                         LibraryToolbarView(searchText: $searchText)
                         Divider().background(Theme.Colors.border)
@@ -32,17 +39,20 @@ struct LibraryView: View {
         .background(Theme.Colors.bgPrimary)
         .overlay {
             if isDropTargeted {
-                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
-                    .strokeBorder(Theme.Colors.accentPrimary, style: StrokeStyle(lineWidth: 2, dash: [8]))
-                    .background(Theme.Colors.accentPrimary.opacity(0.1))
-                    .padding(8)
+                RoundedRectangle(cornerRadius: Theme.Layout.cardRadius, style: .continuous)
+                    .strokeBorder(Theme.Colors.accentBright, style: StrokeStyle(lineWidth: 2, dash: [8]))
+                    .background(
+                        RoundedRectangle(cornerRadius: Theme.Layout.cardRadius, style: .continuous)
+                            .fill(Theme.Colors.accentPrimary.opacity(0.12))
+                    )
+                    .padding(10)
                     .allowsHitTesting(false)
             }
         }
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $isDropTargeted) { providers in
             appState.handleDrop(providers: providers)
         }
-        .alert("Library Error", isPresented: $appState.isLibraryErrorPresented) {
+        .alert(loc["Ошибка библиотеки"], isPresented: $appState.isLibraryErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(appState.libraryErrorMessage)
@@ -54,31 +64,21 @@ struct LibraryView: View {
 
 struct TopHeaderView: View {
     @EnvironmentObject private var appState: AppViewModel
-    @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
-    
+    @EnvironmentObject private var loc: Localization
+
     var body: some View {
         HStack(spacing: 16) {
             Spacer()
-            
-            // Buttons
-            Button("Import") {
+
+            // Единственная точка импорта. Конвертация живёт в тулбаре списка,
+            // где выбирается формат — чтобы не было двух конкурирующих кнопок.
+            Button {
                 appState.presentImporter()
-            }
+            } label: { Label(loc["Импорт"], systemImage: "plus") }
             .buttonStyle(GhostButtonStyle())
-            .frame(height: 36)
-            
-            Button("Convert to MP3 320") {
-                guard let folder = selectDestinationFolder() else { return }
-                conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: .mp3_320CBR, outputFolder: folder)
-                conversionQueue.startAll()
-            }
-            .buttonStyle(AccentButtonStyle())
-            .frame(height: 36)
-            .disabled(appState.selectedAudioFileIDs.isEmpty)
-            .opacity(appState.selectedAudioFileIDs.isEmpty ? 0.5 : 1.0)
         }
         .padding(.horizontal, 24)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .background(Theme.Colors.bgPrimary)
     }
 }
@@ -86,22 +86,32 @@ struct TopHeaderView: View {
 // MARK: - Drop Zone View
 
 struct DropZoneView: View {
+    @EnvironmentObject private var loc: Localization
     var body: some View {
         ZStack {
             Theme.Colors.bgBase
-            
-            VStack(spacing: 16) {
-                Image(systemName: "square.and.arrow.down")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundStyle(Theme.Colors.accentPrimary)
-                
-                Text("Drop Audio Files or Folders Here")
-                    .font(.inter(size: 20, weight: .bold))
+            // Мягкий violet-ореол сверху — фирменная глубина фона.
+            RadialGradient(colors: [Theme.Colors.accentPrimary.opacity(0.10), .clear],
+                           center: .top, startRadius: 0, endRadius: 380)
+                .allowsHitTesting(false)
+
+            VStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.Colors.accentPrimary.opacity(0.12))
+                        .frame(width: 76, height: 76)
+                    Image(systemName: "square.and.arrow.down")
+                        .font(.system(size: 30, weight: .regular))
+                        .foregroundStyle(Theme.Colors.accentBright)
+                }
+
+                Text(loc["Перетащите аудиофайлы или папки"])
+                    .font(.inter(size: 18, weight: .bold))
                     .foregroundStyle(Theme.Colors.textPrimary)
-                
+
                 Text("FLAC • WAV • AIFF • ALAC • MP3")
-                    .font(.inter(size: 14))
-                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .font(.inter(size: 12, weight: .medium))
+                    .foregroundStyle(Theme.Colors.textMuted)
             }
         }
     }
@@ -113,110 +123,103 @@ struct LibraryToolbarView: View {
     @Binding var searchText: String
     @EnvironmentObject private var appState: AppViewModel
     @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
-    
+    @EnvironmentObject private var loc: Localization
+
     var body: some View {
         HStack(spacing: 16) {
-            
-            if appState.isSelectionModeActive || appState.selectedAudioFileCount > 1 {
+
+            if appState.selectedAudioFileCount > 1 {
                 // Multi-Selection Toolbar
-                Text("\(appState.selectedAudioFileCount) selected")
-                    .font(.inter(size: 13, weight: .bold))
-                    .foregroundStyle(Theme.Colors.accentPrimary)
+                Text("\(appState.selectedAudioFileCount) \(loc["выбрано"])")
+                    .font(.inter(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.accentBright)
                     .fixedSize(horizontal: true, vertical: false)
-                
-                HStack(spacing: 8) {
-                    Text("Format:")
-                        .font(.inter(size: 12))
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                        .fixedSize(horizontal: true, vertical: false)
-                    
-                    Picker("", selection: $conversionQueue.selectedTargetFormat) {
-                        ForEach(ConversionSettings.OutputFormat.allCases) { format in
-                            Text(format.displayName).tag(format)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(width: 80)
-                }
-                
-                Button("Convert Selected") {
-                    guard let folder = selectDestinationFolder() else { return }
-                    let settings = ConversionSettings(
-                        outputFormat: conversionQueue.selectedTargetFormat,
-                        bitrate: .constant(kilobitsPerSecond: 320),
-                        preserveMetadata: true,
-                        preserveArtwork: true,
-                        preserveFolderStructure: true
-                    )
-                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: settings, outputFolder: folder)
-                    appState.selectedSection = .conversion
-                }
-                .buttonStyle(AccentButtonStyle())
-                .disabled(appState.selectedAudioFileIDs.isEmpty)
-                
-                Button("Reveal Selected") {
+
+                conversionControls
+
+                Button {
                     let urls = appState.selectedAudioFiles.map { $0.url }
                     NSWorkspace.shared.activateFileViewerSelecting(urls)
-                }
+                } label: { Label("Finder", systemImage: "folder") }
                 .buttonStyle(GhostButtonStyle())
                 .disabled(appState.selectedAudioFileIDs.isEmpty)
-                
-                Button("Delete Selected") {
+
+                Button {
                     if !appState.selectedAudioFileIDs.isEmpty {
                         appState.isDeleteConfirmationPresented = true
                     }
-                }
+                } label: { Label(loc["Удалить"], systemImage: "trash") }
                 .buttonStyle(DestructiveGhostButtonStyle())
                 .disabled(appState.selectedAudioFileIDs.isEmpty)
-                
-                Button("Cancel") {
+
+                Button(loc["Отмена"]) {
                     appState.deselectAll()
                 }
                 .buttonStyle(GhostButtonStyle())
-                
+
             } else {
                 // Single/Empty Toolbar
-                HStack(spacing: 8) {
-                    Text("Format:")
-                        .font(.inter(size: 12))
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                        .fixedSize(horizontal: true, vertical: false)
-                    
-                    Picker("", selection: $conversionQueue.selectedTargetFormat) {
-                        ForEach(ConversionSettings.OutputFormat.allCases) { format in
-                            Text(format.displayName).tag(format)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(width: 80)
-                }
-                
-                Button("Convert Selected") {
-                    guard let folder = selectDestinationFolder() else { return }
-                    let settings = ConversionSettings(
-                        outputFormat: conversionQueue.selectedTargetFormat,
-                        bitrate: .constant(kilobitsPerSecond: 320),
-                        preserveMetadata: true,
-                        preserveArtwork: true,
-                        preserveFolderStructure: true
-                    )
-                    conversionQueue.enqueue(files: appState.selectedAudioFiles, settings: settings, outputFolder: folder)
-                    appState.selectedSection = .conversion
-                }
-                .buttonStyle(AccentButtonStyle())
-                .disabled(appState.selectedAudioFileIDs.isEmpty)
+                conversionControls
             }
-            
+
             Spacer()
-            
-            // Search
-            TextField("Search tracks", text: $searchText)
+
+            // Поиск
+            TextField(loc["Поиск треков"], text: $searchText)
                 .textFieldStyle(SearchTextFieldStyle())
-                .frame(width: 200)
+                .frame(width: 220)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)
         .background(Theme.Colors.bgBase)
+    }
+
+    // Единые контролы конвертации: формат + «Конвертировать» + чип папки назначения.
+    @ViewBuilder private var conversionControls: some View {
+        HStack(spacing: 8) {
+            Text(loc["Формат:"])
+                .font(.inter(size: 12))
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .fixedSize(horizontal: true, vertical: false)
+
+            Picker("", selection: $conversionQueue.selectedTargetFormat) {
+                ForEach(ConversionSettings.OutputFormat.allCases) { format in
+                    Text(format.displayName).tag(format)
+                }
+            }
+            .labelsHidden()
+            .frame(width: 80)
+        }
+
+        Button {
+            convertSelected()
+        } label: { Label(loc["Конвертировать"], systemImage: "arrow.triangle.2.circlepath") }
+        .buttonStyle(AccentButtonStyle())
+        .disabled(appState.selectedAudioFileIDs.isEmpty)
+
+        // Куда сохраняем: показываем запомненную папку и даём сменить одним кликом.
+        if let folder = conversionQueue.lastOutputFolder {
+            Button {
+                changeDestination()
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "folder")
+                    Text(folder.lastPathComponent).lineLimit(1)
+                }
+            }
+            .buttonStyle(GhostButtonStyle())
+            .help("\(loc["Папка назначения"]): \(folder.path)")
+        }
+    }
+
+    private func convertSelected() {
+        startConversion(files: appState.selectedAudioFiles, conversionQueue: conversionQueue, appState: appState)
+    }
+
+    private func changeDestination() {
+        if let picked = selectDestinationFolder(startingAt: conversionQueue.lastOutputFolder) {
+            conversionQueue.lastOutputFolder = picked
+        }
     }
 }
 
@@ -226,6 +229,8 @@ struct TrackListView: View {
     let searchText: String
     var filterFolder: URL? = nil
     @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
+    @EnvironmentObject private var loc: Localization
     
     private var filteredLibrary: [AudioFile] {
         var items = appState.library
@@ -237,39 +242,46 @@ struct TrackListView: View {
         return items.filter { $0.searchableText.localizedCaseInsensitiveContains(term) }
     }
     
+    private func statusColor(_ severity: AppViewModel.LibraryStatus.Severity) -> Color {
+        switch severity {
+        case .information: return Theme.Colors.textSecondary
+        case .warning: return Theme.Colors.accentBright
+        case .error: return Theme.Colors.destructive
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
             HStack(spacing: 12) {
-                if appState.isSelectionModeActive {
-                    Image(systemName: "checkmark.square.fill")
-                        .foregroundStyle(Color.clear)
-                        .frame(width: 16)
-                        .transition(.move(edge: .leading).combined(with: .opacity))
-                }
-                
                 Text("#").frame(width: 30, alignment: .leading)
-                Text("Artwork").frame(width: 50, alignment: .center)
-                Text("Title").frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
-                Text("Artist").frame(width: 120, alignment: .leading)
-                Text("Key").frame(width: 50, alignment: .leading)
+                Text("").frame(width: 50, alignment: .center)
+                Text(loc["НАЗВАНИЕ"]).frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
+                Text(loc["АРТИСТ"]).frame(width: 120, alignment: .leading)
+                Text("KEY").frame(width: 50, alignment: .leading)
                 Text("BPM").frame(width: 50, alignment: .trailing)
-                Text("Time").frame(width: 60, alignment: .trailing)
-                Text("Format").frame(width: 60, alignment: .trailing)
-                Text("Size").frame(width: 60, alignment: .trailing)
+                Text(loc["ВРЕМЯ"]).frame(width: 60, alignment: .trailing)
+                Text(loc["ФОРМАТ"]).frame(width: 60, alignment: .trailing)
+                Text(loc["РАЗМЕР"]).frame(width: 60, alignment: .trailing)
             }
-            .font(.inter(size: 11, weight: .bold))
+            .font(.inter(size: 10, weight: .semibold))
             .foregroundStyle(Theme.Colors.textMuted)
             .padding(.horizontal, 24)
-            .padding(.vertical, 10)
+            .padding(.vertical, 11)
             .background(Theme.Colors.bgBase)
             
             Divider().background(Theme.Colors.border)
             
             if filteredLibrary.isEmpty {
                 Spacer()
-                Text(appState.isLibraryProcessing ? "Preparing library..." : "No tracks found")
-                    .foregroundStyle(Theme.Colors.textSecondary)
+                VStack(spacing: 8) {
+                    Image(systemName: "music.note.list")
+                        .font(.system(size: 30, weight: .light))
+                        .foregroundStyle(Theme.Colors.textMuted)
+                    Text(appState.isLibraryProcessing ? loc["Готовим библиотеку…"] : loc["Треков не найдено"])
+                        .font(.inter(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
                 Spacer()
             } else {
                 ScrollView {
@@ -292,41 +304,45 @@ struct TrackListView: View {
                                 } else if flags.contains(.shift) {
                                     appState.selectRange(from: appState.lastSelectedTrackID, to: file.id, in: filteredLibrary)
                                 } else {
-                                    if appState.isSelectionModeActive {
-                                        appState.toggleSelection(for: file.id)
-                                    } else {
-                                        appState.selectedAudioFileIDs = [file.id]
-                                        appState.lastSelectedTrackID = file.id
-                                    }
-                                }
-                            })
-                            .contextMenu {
-                                Button("Play") {
-                                    appState.selectedAudioFileIDs = [file.id]
-                                    appState.requestedPlaybackTrackID = file.id
-                                }
-                                Button("Reveal in Finder") {
-                                    NSWorkspace.shared.activateFileViewerSelecting([file.url])
-                                }
-                                Divider()
-                                Button("Select") {
-                                    appState.isSelectionModeActive = true
                                     appState.selectedAudioFileIDs = [file.id]
                                     appState.lastSelectedTrackID = file.id
                                 }
-                                Button("Select All") {
-                                    appState.selectAll(in: filteredLibrary)
-                                }
-                                Button("Deselect All") {
-                                    appState.deselectAll()
-                                }
+                            })
+                            .contextMenu {
+                                Button {
+                                    appState.selectedAudioFileIDs = [file.id]
+                                    appState.requestedPlaybackTrackID = file.id
+                                } label: { Label(loc["Играть"], systemImage: "play.fill") }
+                                Button {
+                                    NSWorkspace.shared.activateFileViewerSelecting([file.url])
+                                } label: { Label(loc["Показать в Finder"], systemImage: "folder") }
                                 Divider()
-                                Button("Remove from Library") {
+                                Button {
+                                    let files = appState.selectedAudioFileIDs.contains(file.id)
+                                        ? appState.selectedAudioFiles
+                                        : [file]
+                                    startConversion(files: files, conversionQueue: conversionQueue, appState: appState)
+                                } label: { Label(loc["Конвертировать"], systemImage: "arrow.triangle.2.circlepath") }
+                                Button {
+                                    appState.selectedAudioFileIDs = [file.id]
+                                    appState.lastSelectedTrackID = file.id
+                                    appState.inspectorTab = .metadata
+                                } label: { Label(loc["Изменить метаданные"], systemImage: "tag") }
+                                Divider()
+                                Button {
+                                    appState.selectAll(in: filteredLibrary)
+                                } label: { Label(loc["Выбрать всё"], systemImage: "checkmark.circle.fill") }
+                                Button {
+                                    appState.deselectAll()
+                                } label: { Label(loc["Снять выделение"], systemImage: "circle") }
+                                .disabled(appState.selectedAudioFileIDs.isEmpty)
+                                Divider()
+                                Button(role: .destructive) {
                                     if !appState.selectedAudioFileIDs.contains(file.id) {
                                         appState.selectedAudioFileIDs = [file.id]
                                     }
                                     appState.isDeleteConfirmationPresented = true
-                                }
+                                } label: { Label(loc["Убрать из библиотеки"], systemImage: "trash") }
                             }
                             Divider().background(Theme.Colors.border.opacity(0.5))
                         }
@@ -334,9 +350,21 @@ struct TrackListView: View {
                 }
             }
             
-            // Bottom Status Bar
-            HStack {
-                Text("\(filteredLibrary.count) tracks")
+            // Нижний статус-бар
+            HStack(spacing: 10) {
+                Text("\(filteredLibrary.count) \(loc["треков"])")
+                    .foregroundStyle(Theme.Colors.textMuted)
+
+                if let status = appState.libraryStatus {
+                    Circle()
+                        .fill(statusColor(status.severity))
+                        .frame(width: 5, height: 5)
+                    Text(status.message)
+                        .foregroundStyle(statusColor(status.severity))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+
                 Spacer()
                 if appState.isLibraryProcessing {
                     ProgressView().controlSize(.small)
@@ -344,18 +372,17 @@ struct TrackListView: View {
                 }
             }
             .font(.inter(size: 11))
-            .foregroundStyle(Theme.Colors.textMuted)
             .padding(.horizontal, 24)
             .padding(.vertical, 8)
             .background(Theme.Colors.bgBase)
         }
-        .alert("Remove Tracks", isPresented: $appState.isDeleteConfirmationPresented) {
-            Button("Cancel", role: .cancel) { }
-            Button("Remove", role: .destructive) {
+        .alert(loc["Убрать треки"], isPresented: $appState.isDeleteConfirmationPresented) {
+            Button(loc["Отмена"], role: .cancel) { }
+            Button(loc["Убрать"], role: .destructive) {
                 appState.removeSelectedTracks()
             }
         } message: {
-            Text("Are you sure you want to remove the selected \(appState.selectedAudioFileCount) tracks from the library?")
+            Text("\(loc["Убрать из библиотеки"]) — \(appState.selectedAudioFileCount)?")
         }
         .background(
             ZStack {
@@ -403,38 +430,35 @@ struct TrackRowView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            if appState.isSelectionModeActive {
-                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
-                    .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : Theme.Colors.textMuted)
-                    .frame(width: 16)
-                    .onTapGesture {
-                        appState.toggleSelection(for: file.id)
-                    }
-                    .transition(.move(edge: .leading).combined(with: .opacity))
-            }
-            
             Text("\(index)")
                 .frame(width: 30, alignment: .leading)
                 .foregroundStyle(Theme.Colors.textMuted)
             
-            // Artwork
-            if let artworkURL = file.metadata.artworkLocation, let nsImage = NSImage(contentsOf: artworkURL) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 32, height: 32)
-                    .clipShape(RoundedRectangle(cornerRadius: 2))
-                    .frame(width: 50, alignment: .center)
-            } else {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Theme.Colors.bgHover)
-                    .frame(width: 32, height: 32)
-                    .frame(width: 50, alignment: .center)
+            // Артворк
+            Group {
+                if let artworkURL = file.metadata.artworkLocation, let nsImage = NSImage(contentsOf: artworkURL) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 36, height: 36)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .hairline(6, color: Theme.Colors.borderSubtle)
+                } else {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Theme.Colors.bgHover)
+                        .frame(width: 36, height: 36)
+                        .overlay(Image(systemName: "music.note")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.Colors.textMuted))
+                        .hairline(6, color: Theme.Colors.borderSubtle)
+                }
             }
+            .frame(width: 50, alignment: .center)
             
             HStack(spacing: 6) {
                 Text(file.displayTitle)
-                    .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : Theme.Colors.textPrimary)
+                    .font(.inter(size: 13, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(Theme.Colors.textPrimary)
                     .lineLimit(1)
                 
                 if let job = conversionQueue.jobs.first(where: { $0.sourceURL == file.url && $0.status == .completed }) {
@@ -452,7 +476,7 @@ struct TrackRowView: View {
             
             Text(file.displayArtist)
                 .frame(width: 120, alignment: .leading)
-                .foregroundStyle(isSelected ? Theme.Colors.accentPrimary.opacity(0.8) : Theme.Colors.textSecondary)
+                .foregroundStyle(Theme.Colors.textSecondary)
                 .lineLimit(1)
             
             // Key Badge
@@ -482,7 +506,16 @@ struct TrackRowView: View {
         .font(.inter(size: 13))
         .padding(.horizontal, 24)
         .padding(.vertical, 8)
-        .background(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
+        .background(
+            ZStack(alignment: .leading) {
+                if isSelected {
+                    Theme.Colors.accentPrimary.opacity(0.12)
+                    Rectangle().fill(Theme.Colors.accentGradient).frame(width: 2.5)
+                } else if isHovered {
+                    Theme.Colors.bgHover
+                }
+            }
+        )
         .contentShape(Rectangle())
         .onHover { hovering in
             isHovered = hovering
@@ -504,14 +537,40 @@ struct TrackRowView: View {
 
 // MARK: - Helpers
 
-func selectDestinationFolder() -> URL? {
+/// Общий путь конвертации для тулбара и контекстного меню: берёт запомненную
+/// папку (или спрашивает впервые), ставит задания в очередь и открывает её.
+@MainActor
+func startConversion(files: [AudioFile], conversionQueue: ConversionQueueViewModel, appState: AppViewModel) {
+    guard !files.isEmpty else { return }
+    let folder: URL
+    if let last = conversionQueue.lastOutputFolder, FileManager.default.fileExists(atPath: last.path) {
+        folder = last
+    } else {
+        guard let picked = selectDestinationFolder(startingAt: conversionQueue.lastOutputFolder) else { return }
+        folder = picked
+    }
+    conversionQueue.lastOutputFolder = folder
+
+    let settings = ConversionSettings(
+        outputFormat: conversionQueue.selectedTargetFormat,
+        bitrate: .constant(kilobitsPerSecond: 320),
+        preserveMetadata: true,
+        preserveArtwork: true,
+        preserveFolderStructure: true
+    )
+    conversionQueue.enqueue(files: files, settings: settings, outputFolder: folder)
+    appState.selectedSection = .conversion
+}
+
+func selectDestinationFolder(startingAt: URL? = nil) -> URL? {
     let panel = NSOpenPanel()
     panel.canChooseFiles = false
     panel.canChooseDirectories = true
     panel.canCreateDirectories = true
     panel.allowsMultipleSelection = false
     panel.prompt = "Choose Destination"
-    
+    if let startingAt { panel.directoryURL = startingAt }
+
     if panel.runModal() == .OK {
         return panel.url
     }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainLayoutView: View {
     @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var loc: Localization
     
     var body: some View {
         ZStack {
@@ -53,39 +54,74 @@ struct MainLayoutView: View {
                 BottomPlayerView()
             }
         }
-        .alert("Delete Folder", isPresented: $appState.showingDeleteAlert, presenting: appState.folderToDelete) { url in
-            Button("Remove from App Only") {
+        .alert(loc["Удалить папку"], isPresented: $appState.showingDeleteAlert, presenting: appState.folderToDelete) { url in
+            Button(loc["Убрать только из приложения"]) {
                 appState.deleteFolder(url: url, moveToTrash: false)
             }
-            Button("Move to Mac Trash", role: .destructive) {
+            Button(loc["Переместить в Корзину Mac"], role: .destructive) {
                 appState.deleteFolder(url: url, moveToTrash: true)
             }
-            Button("Cancel", role: .cancel) { }
+            Button(loc["Отмена"], role: .cancel) { }
         } message: { url in
-            Text("Do you want to remove this folder only from the app library, or also move it to the Mac Trash?")
+            Text(loc["Удалить папку"])
         }
         .sheet(isPresented: $appState.showingRenameSheet) {
             if let url = appState.folderToRename {
-                VStack(spacing: 20) {
-                    Text("Rename Folder")
-                        .font(.headline)
-                    
-                    TextField("New Name", text: $appState.newFolderName)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 250)
-                    
-                    HStack(spacing: 12) {
-                        Button("Cancel") {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Заголовок
+                    HStack(spacing: 11) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .fill(Theme.Colors.accentPrimary.opacity(0.14))
+                                .frame(width: 38, height: 38)
+                            Image(systemName: "pencil")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Theme.Colors.accentBright)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(loc["Переименовать папку"])
+                                .font(.inter(size: 15, weight: .bold))
+                                .foregroundStyle(Theme.Colors.textPrimary)
+                            Text(appState.folderAliases[url] ?? url.lastPathComponent)
+                                .font(.inter(size: 12))
+                                .foregroundStyle(Theme.Colors.textMuted)
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                    }
+                    .padding(.bottom, 18)
+
+                    SectionLabel(text: loc["Новое имя"])
+                        .padding(.bottom, 6)
+                    TextField(loc["Новое имя"], text: $appState.newFolderName)
+                        .textFieldStyle(.plain)
+                        .font(.inter(size: 14))
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: Theme.Layout.buttonRadius, style: .continuous)
+                                .fill(Theme.Colors.bgBase)
+                        )
+                        .hairline(Theme.Layout.buttonRadius, color: Theme.Colors.border)
+                        .padding(.bottom, 22)
+
+                    HStack(spacing: 10) {
+                        Button(loc["Отмена"]) {
                             appState.showingRenameSheet = false
                         }
-                        
-                        Button("Rename in App Only") {
+                        .buttonStyle(GhostButtonStyle())
+
+                        Spacer()
+
+                        Button(loc["В приложении"]) {
                             appState.renameFolder(url: url, newName: appState.newFolderName, onMac: false)
                             appState.showingRenameSheet = false
                         }
+                        .buttonStyle(GhostButtonStyle())
                         .disabled(appState.newFolderName.isEmpty || appState.newFolderName == (appState.folderAliases[url] ?? url.lastPathComponent))
-                        
-                        Button("Rename on Mac") {
+
+                        Button(loc["Переименовать на Mac"]) {
                             appState.renameFolder(url: url, newName: appState.newFolderName, onMac: true)
                             appState.showingRenameSheet = false
                         }
@@ -94,8 +130,8 @@ struct MainLayoutView: View {
                     }
                 }
                 .padding(24)
-                .background(Theme.Colors.bgPrimary)
-                .frame(width: 450)
+                .frame(width: 440)
+                .background(Theme.Colors.bgSecondary)
             }
         }
     }

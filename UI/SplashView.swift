@@ -5,6 +5,7 @@ import SwiftUI
 /// cold launch, then hands control to the main window via `onFinished`.
 struct SplashView: View {
     var onFinished: () -> Void
+    @EnvironmentObject private var loc: Localization
 
     // Animation state
     @State private var iconRevealed = false
@@ -42,35 +43,41 @@ struct SplashView: View {
                 .scaleEffect(glowPulse ? 1.06 : 0.9)
                 .opacity(iconRevealed ? 1 : 0)
 
-            VStack(spacing: 34) {
-                // App icon
+            VStack(spacing: 30) {
+                // Иконка приложения — фирменный градиентный квадрат со стрелками
                 shineWrapped {
-                    appIconImage
-                        .resizable()
-                        .interpolation(.high)
-                        .aspectRatio(contentMode: .fit)
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Theme.Colors.accentGradient)
                         .frame(width: 132, height: 132)
-                        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                                .fill(LinearGradient(colors: [.white.opacity(0.22), .clear],
+                                                     startPoint: .top, endPoint: .bottom))
+                        )
+                        .overlay(
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 62, weight: .bold))
+                                .foregroundStyle(.white)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                                .strokeBorder(.white.opacity(0.14), lineWidth: 1)
+                        )
                 }
-                .shadow(color: Theme.Colors.accentPrimary.opacity(0.35), radius: 24, y: 10)
+                .shadow(color: Theme.Colors.accentPrimary.opacity(0.45), radius: 30, y: 12)
                 .scaleEffect(iconRevealed ? 1 : 0.86)
                 .opacity(iconRevealed ? 1 : 0)
 
                 // Wordmark
-                shineWrapped {
-                    wordmarkImage
-                        .resizable()
-                        .interpolation(.high)
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 248)
-                }
-                .opacity(wordmarkRevealed ? 1 : 0)
-                .offset(y: wordmarkRevealed ? 0 : 8)
+                Text("Convertra")
+                    .font(.inter(size: 40, weight: .bold))
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .opacity(wordmarkRevealed ? 1 : 0)
+                    .offset(y: wordmarkRevealed ? 0 : 8)
 
-                // Tagline
-                Text("AUDIO LIBRARY · ANALYSIS · CONVERSION")
+                // Подпись
+                Text(loc["БИБЛИОТЕКА · АНАЛИЗ · КОНВЕРТАЦИЯ"])
                     .font(.inter(size: 10, weight: .medium))
-                    .tracking(3.2)
                     .foregroundStyle(Theme.Colors.textMuted)
                     .opacity(wordmarkRevealed ? 0.9 : 0)
                     .offset(y: wordmarkRevealed ? 0 : 6)
@@ -78,22 +85,6 @@ struct SplashView: View {
         }
         .opacity(isDismissing ? 0 : 1)
         .onAppear(perform: runSequence)
-    }
-
-    // MARK: - Assets (with graceful text fallbacks)
-
-    private var appIconImage: Image {
-        if let icon = NSImage.bundled("AppIcon") {
-            return Image(nsImage: icon)
-        }
-        return Image(systemName: "waveform.circle.fill")
-    }
-
-    private var wordmarkImage: Image {
-        if let logo = NSImage.bundled("Logo") {
-            return Image(nsImage: logo)
-        }
-        return Image(systemName: "waveform")
     }
 
     // MARK: - Shine

@@ -33,6 +33,7 @@ let package = Package(
                 "App/AppViewModel.swift",
                 "App/ContentView.swift",
                 "UI/Theme.swift",
+                "UI/Localization.swift",
                 "UI/Components.swift",
                 "UI/SplashView.swift",
                 "UI/MainLayoutView.swift",
