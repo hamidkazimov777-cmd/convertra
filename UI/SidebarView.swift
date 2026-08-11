@@ -55,9 +55,7 @@ struct SidebarView: View {
                             }
                             .contextMenu {
                                 Button("Select") {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        appState.selectedSection = .folder(url)
-                                    }
+                                    appState.selectedSection = .folder(url)
                                 }
                                 Button("Rename...") {
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
