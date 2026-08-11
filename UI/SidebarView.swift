@@ -60,12 +60,16 @@ struct SidebarView: View {
                                 Button("Rename...") {
                                     folderToRename = url
                                     newFolderName = title
-                                    showingRenameSheet = true
+                                    DispatchQueue.main.async {
+                                        showingRenameSheet = true
+                                    }
                                 }
                                 Divider()
                                 Button("Delete...") {
                                     folderToDelete = url
-                                    showingDeleteAlert = true
+                                    DispatchQueue.main.async {
+                                        showingDeleteAlert = true
+                                    }
                                 }
                             }
                         }
@@ -135,23 +139,22 @@ struct SidebarItem: View {
     @State private var isHovered = false
     
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .frame(width: 16)
-                Text(title)
-                Spacer()
-            }
-            .font(.inter(size: 14, weight: isSelected ? .medium : .regular))
-            .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
-            )
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .frame(width: 16)
+            Text(title)
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .font(.inter(size: 14, weight: isSelected ? .medium : .regular))
+        .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
+        )
+        .contentShape(Rectangle())
+        .onTapGesture(perform: action)
         .onHover { hovering in
             isHovered = hovering
         }
@@ -168,27 +171,26 @@ struct SidebarCollectionItem: View {
     @State private var isHovered = false
     
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .frame(width: 16)
-                Text(title)
-                Spacer()
-                if count > 0 {
-                    Text("\(count)")
-                        .font(.inter(size: 12))
-                }
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .frame(width: 16)
+            Text(title)
+            Spacer()
+            if count > 0 {
+                Text("\(count)")
+                    .font(.inter(size: 12))
             }
-            .font(.inter(size: 13, weight: isSelected ? .medium : .regular))
-            .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
-            )
         }
-        .buttonStyle(.plain)
+        .font(.inter(size: 13, weight: isSelected ? .medium : .regular))
+        .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
+        )
+        .contentShape(Rectangle())
+        .onTapGesture(perform: action)
         .onHover { hovering in
             isHovered = hovering
         }

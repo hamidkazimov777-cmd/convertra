@@ -17,7 +17,7 @@
   - **Stage 4.0 (Recent Updates)**: 
     - **UI Redesign**: Redesigned `DuplicatesView` to match the custom aesthetic of `ConversionQueueView` using a `ScrollView` and `LazyVStack`.
     - **Logic Refinements**: Excluded Remixes from duplicate detection logic. Removed the `(converted)` suffix from batch-converted files.
-    - **Folder Management**: Implemented context menu operations in the Sidebar for library folders, supporting both localized app-only renaming/deletion and global macOS file system renaming/deletion (Move to Trash).
+    - **Folder Management**: Implemented context menu operations in the Sidebar for library folders, supporting both localized app-only renaming/deletion and global macOS file system renaming/deletion (Move to Trash). Fixed a critical layout freeze in macOS SwiftUI by utilizing `DispatchQueue.main.async` for sheet and alert presentations from `.contextMenu`. Also resolved an issue where standard button primary clicks were intercepted by the `.contextMenu`, by replacing `Button` implementations with `.onTapGesture`.
     - **Workflow Automation**: Automated conversion processing upon triggering "Convert Selected", eliminating the need for a secondary "Start All" button in the queue.
     - **Branding Polish**: Updated the macOS Application Icon with an Apple-standard squircle background mask and drop-shadow, and refined the Sidebar logo to use a localized styled `Text` component instead of a scaled image.
 - **Project Status**: **100% COMPLETE & RELEASE READY**.
