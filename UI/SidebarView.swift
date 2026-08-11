@@ -30,7 +30,7 @@ struct SidebarView: View {
                 Spacer()
             }
             .padding(.horizontal, 18)
-            .padding(.top, 22)
+            .padding(.top, 40)
             .padding(.bottom, 26)
 
             // Навигация
