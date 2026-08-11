@@ -55,20 +55,22 @@ struct SidebarView: View {
                             }
                             .contextMenu {
                                 Button("Select") {
-                                    appState.selectedSection = .folder(url)
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        appState.selectedSection = .folder(url)
+                                    }
                                 }
                                 Button("Rename...") {
-                                    folderToRename = url
-                                    newFolderName = title
-                                    DispatchQueue.main.async {
-                                        showingRenameSheet = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        appState.folderToRename = url
+                                        appState.newFolderName = title
+                                        appState.showingRenameSheet = true
                                     }
                                 }
                                 Divider()
                                 Button("Delete...") {
-                                    folderToDelete = url
-                                    DispatchQueue.main.async {
-                                        showingDeleteAlert = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        appState.folderToDelete = url
+                                        appState.showingDeleteAlert = true
                                     }
                                 }
                             }
@@ -82,51 +84,6 @@ struct SidebarView: View {
         }
         .frame(width: Theme.Layout.sidebarWidth)
         .background(Theme.Colors.bgBase)
-        .alert("Delete Folder", isPresented: $showingDeleteAlert, presenting: folderToDelete) { url in
-            Button("Remove from App Only") {
-                appState.deleteFolder(url: url, moveToTrash: false)
-            }
-            Button("Move to Mac Trash", role: .destructive) {
-                appState.deleteFolder(url: url, moveToTrash: true)
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: { url in
-            Text("Do you want to remove this folder only from the app library, or also move it to the Mac Trash?")
-        }
-        .sheet(isPresented: $showingRenameSheet) {
-            if let url = folderToRename {
-                VStack(spacing: 20) {
-                    Text("Rename Folder")
-                        .font(.headline)
-                    
-                    TextField("New Name", text: $newFolderName)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 250)
-                    
-                    HStack(spacing: 12) {
-                        Button("Cancel") {
-                            showingRenameSheet = false
-                        }
-                        
-                        Button("Rename in App Only") {
-                            appState.renameFolder(url: url, newName: newFolderName, onMac: false)
-                            showingRenameSheet = false
-                        }
-                        .disabled(newFolderName.isEmpty || newFolderName == (appState.folderAliases[url] ?? url.lastPathComponent))
-                        
-                        Button("Rename on Mac") {
-                            appState.renameFolder(url: url, newName: newFolderName, onMac: true)
-                            showingRenameSheet = false
-                        }
-                        .disabled(newFolderName.isEmpty || newFolderName == url.lastPathComponent)
-                        .buttonStyle(AccentButtonStyle())
-                    }
-                }
-                .padding(24)
-                .background(Theme.Colors.bgPrimary)
-                .frame(width: 450)
-            }
-        }
     }
 }
 
@@ -139,22 +96,23 @@ struct SidebarItem: View {
     @State private var isHovered = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .frame(width: 16)
-            Text(title)
-            Spacer()
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .frame(width: 16)
+                Text(title)
+                Spacer()
+            }
+            .font(.inter(size: 14, weight: isSelected ? .medium : .regular))
+            .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
+            )
         }
-        .font(.inter(size: 14, weight: isSelected ? .medium : .regular))
-        .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
-        )
-        .contentShape(Rectangle())
-        .onTapGesture(perform: action)
+        .buttonStyle(.plain)
         .onHover { hovering in
             isHovered = hovering
         }
@@ -171,26 +129,27 @@ struct SidebarCollectionItem: View {
     @State private var isHovered = false
     
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .frame(width: 16)
-            Text(title)
-            Spacer()
-            if count > 0 {
-                Text("\(count)")
-                    .font(.inter(size: 12))
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .frame(width: 16)
+                Text(title)
+                Spacer()
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.inter(size: 12))
+                }
             }
+            .font(.inter(size: 13, weight: isSelected ? .medium : .regular))
+            .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
+            )
         }
-        .font(.inter(size: 13, weight: isSelected ? .medium : .regular))
-        .foregroundStyle(isSelected ? Theme.Colors.accentPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(isSelected ? Theme.Colors.bgSelected : (isHovered ? Theme.Colors.bgHover : Color.clear))
-        )
-        .contentShape(Rectangle())
-        .onTapGesture(perform: action)
+        .buttonStyle(.plain)
         .onHover { hovering in
             isHovered = hovering
         }

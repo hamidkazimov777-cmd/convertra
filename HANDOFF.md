@@ -80,3 +80,7 @@ The Convertra project is fully completed according to specification:
 - 0 third-party runtime dependencies.
 - Native vDSP Accelerate framework audio analysis matching commercial standards.
 - Production UI, playback, persistence, metadata editing, conversion, and release packaging fully functional and verified.
+## Sidebar Context Menu Fixes
+- Addressed SwiftUI macOS deadlock when presenting .sheet/.alert from inside a contextMenu inside a ScrollView by moving all folder rename/delete sheet logic up to the root MainLayoutView via AppViewModel state.
+- Restored Button for sidebar items to ensure reliable primary click selection.
+- Wrapped contextMenu action changes in a 0.1s asyncAfter delay to allow the native menu to cleanly dismiss before SwiftUI updates state.

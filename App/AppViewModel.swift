@@ -39,6 +39,13 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var isAnalyzingTechnicalMetadata = false
     @Published private(set) var isReadingMetadata = false
     @Published private(set) var isApplyingMetadataEdits = false
+    
+    // Folder management state
+    @Published var folderToDelete: URL?
+    @Published var showingDeleteAlert = false
+    @Published var folderToRename: URL?
+    @Published var showingRenameSheet = false
+    @Published var newFolderName = ""
     @Published private(set) var libraryStatus: LibraryStatus?
     @Published var isLibraryErrorPresented = false
     @Published private(set) var libraryErrorMessage = ""
