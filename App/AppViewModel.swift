@@ -608,7 +608,7 @@ final class AppViewModel: ObservableObject {
                 Task { await persistLibrary() }
                 
             } catch {
-                presentLibraryError("Failed to rename folder on Mac: \(error.localizedDescription)")
+                presentLibraryError(String(format: loc["Не удалось переименовать папку на Mac: %@"], error.localizedDescription))
             }
         } else {
             folderAliases[url] = newName
