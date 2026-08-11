@@ -84,3 +84,4 @@ The Convertra project is fully completed according to specification:
 - Addressed SwiftUI macOS deadlock when presenting .sheet/.alert from inside a contextMenu inside a ScrollView by moving all folder rename/delete sheet logic up to the root MainLayoutView via AppViewModel state.
 - Restored Button for sidebar items to ensure reliable primary click selection.
 - Wrapped contextMenu action changes in a 0.1s asyncAfter delay to allow the native menu to cleanly dismiss before SwiftUI updates state.
+- Fixed the 'Select' context menu action by removing the async dispatch delay, allowing immediate state update.
