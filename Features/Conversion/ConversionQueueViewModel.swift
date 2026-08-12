@@ -5,14 +5,27 @@ import SwiftUI
 @MainActor
 final class ConversionQueueViewModel: ObservableObject {
     @Published private(set) var jobs: [ConversionJob] = []
-    @Published var selectedTargetFormat: ConversionSettings.OutputFormat = .mp3
+    @Published var selectedTargetFormat: ConversionSettings.OutputFormat
     /// Last destination folder chosen this session — reused so batch conversions
     /// don't re-prompt for a folder every single time.
     @Published var lastOutputFolder: URL?
-    
+
     private let engine = AudioConversionEngine()
+
+    init() {
+        // Seed the toolbar format from the saved default; the picker can still
+        // override it for the session.
+        selectedTargetFormat = AppSettings.shared.defaultOutputFormat
+    }
     /// Running conversion tasks by job id, so a job can be cancelled mid-flight.
     private var tasks: [UUID: Task<Void, Never>] = [:]
+    /// Conversions currently in flight, so the queue can honour the configured
+    /// parallelism limit instead of starting every job at once.
+    private var activeConversionCount = 0
+
+    private var maxParallel: Int {
+        max(1, AppSettings.shared.maxParallelConversions)
+    }
 
     var totalJobs: Int { jobs.count }
     
@@ -40,28 +53,42 @@ final class ConversionQueueViewModel: ObservableObject {
             )
         }
         jobs.append(contentsOf: newJobs)
-        startAll()
+        pumpQueue()
     }
-    
-    func startAll() {
-        let pendingJobs = jobs.filter { $0.status == .queued || $0.status == .failed }
-        for job in pendingJobs {
-            updateStatus(for: job.id, status: .preparing)
-            let id = job.id
-            tasks[id] = Task { [weak self] in
-                guard let self else { return }
-                do {
-                    await self.updateStatus(for: id, status: .converting)
-                    try await self.engine.convert(job: job)
-                    await self.updateStatus(for: id, status: .completed, progress: 1.0)
-                } catch is CancellationError {
-                    await self.updateStatus(for: id, status: .cancelled)
-                } catch {
-                    await self.updateStatus(for: id, status: .failed, error: error.localizedDescription)
-                }
-                await self.clearTask(id)
-            }
+
+    /// Starts queued jobs until the in-flight count reaches the parallelism
+    /// limit. Called after enqueue and again whenever a job finishes, so the
+    /// queue drains itself one freed slot at a time.
+    private func pumpQueue() {
+        while activeConversionCount < maxParallel,
+              let next = jobs.first(where: { $0.status == .queued }) {
+            startJob(next)
         }
+    }
+
+    private func startJob(_ job: ConversionJob) {
+        let id = job.id
+        updateStatus(for: id, status: .preparing)
+        activeConversionCount += 1
+        tasks[id] = Task { [weak self] in
+            guard let self else { return }
+            do {
+                await self.updateStatus(for: id, status: .converting)
+                try await self.engine.convert(job: job)
+                await self.updateStatus(for: id, status: .completed, progress: 1.0)
+            } catch is CancellationError {
+                await self.updateStatus(for: id, status: .cancelled)
+            } catch {
+                await self.updateStatus(for: id, status: .failed, error: error.localizedDescription)
+            }
+            await self.finishJob(id)
+        }
+    }
+
+    private func finishJob(_ id: UUID) {
+        tasks[id] = nil
+        activeConversionCount = max(0, activeConversionCount - 1)
+        pumpQueue()
     }
 
     /// Stop a single job (kills the ffmpeg process if it is already running).
@@ -73,17 +100,18 @@ final class ConversionQueueViewModel: ObservableObject {
         }
     }
 
-    /// Stop every job that hasn't finished yet.
+    /// Stop every job that hasn't finished yet. Running jobs are cancelled via
+    /// their task; jobs still waiting in the queue (no task yet) are marked
+    /// cancelled directly so `pumpQueue` won't pick them up afterwards.
     func cancelAll() {
         for task in tasks.values { task.cancel() }
+        for job in jobs where job.status == .queued {
+            updateStatus(for: job.id, status: .cancelled)
+        }
     }
 
     var hasActiveJobs: Bool {
         jobs.contains { $0.status == .queued || $0.status == .preparing || $0.status == .converting }
-    }
-
-    private func clearTask(_ id: UUID) {
-        tasks[id] = nil
     }
 
     func clearCompleted() {

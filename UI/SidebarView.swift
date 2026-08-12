@@ -88,6 +88,13 @@ struct SidebarView: View {
 
             Spacer()
 
+            // Настройки
+            SidebarItem(title: loc["Настройки"], icon: "gearshape", isSelected: appState.selectedSection == .settings) {
+                appState.selectedSection = .settings
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 10)
+
             // Переключатель языка
             LanguageSwitcher()
                 .padding(.horizontal, 14)

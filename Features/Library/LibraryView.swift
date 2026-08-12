@@ -135,31 +135,36 @@ struct LibraryToolbarView: View {
                     .foregroundStyle(Theme.Colors.accentBright)
                     .fixedSize(horizontal: true, vertical: false)
 
-                conversionControls
+                conversionControls(compact: true)
 
                 Button {
                     let urls = appState.selectedAudioFiles.map { $0.url }
                     NSWorkspace.shared.activateFileViewerSelecting(urls)
                 } label: { Label("Finder", systemImage: "folder") }
+                .labelStyle(.iconOnly)
                 .buttonStyle(GhostButtonStyle())
                 .disabled(appState.selectedAudioFileIDs.isEmpty)
+                .help(loc["Показать в Finder"])
 
                 Button {
                     if !appState.selectedAudioFileIDs.isEmpty {
                         appState.isDeleteConfirmationPresented = true
                     }
                 } label: { Label(loc["Удалить"], systemImage: "trash") }
+                .labelStyle(.iconOnly)
                 .buttonStyle(DestructiveGhostButtonStyle())
                 .disabled(appState.selectedAudioFileIDs.isEmpty)
+                .help(loc["Удалить"])
 
-                Button(loc["Отмена"]) {
+                Button {
                     appState.deselectAll()
-                }
+                } label: { Image(systemName: "xmark") }
                 .buttonStyle(GhostButtonStyle())
+                .help(loc["Отмена"])
 
             } else {
                 // Single/Empty Toolbar
-                conversionControls
+                conversionControls()
             }
 
             Spacer()
@@ -175,7 +180,9 @@ struct LibraryToolbarView: View {
     }
 
     // Единые контролы конвертации: формат + «Конвертировать» + чип папки назначения.
-    @ViewBuilder private var conversionControls: some View {
+    // В compact-режиме (панель массового выбора) кнопка «Конвертировать» сжимается
+    // до иконки с tooltip, чтобы плотная панель не обрезалась.
+    @ViewBuilder private func conversionControls(compact: Bool = false) -> some View {
         HStack(spacing: 8) {
             Text(loc["Формат:"])
                 .font(.inter(size: 12))
@@ -194,8 +201,10 @@ struct LibraryToolbarView: View {
         Button {
             convertSelected()
         } label: { Label(loc["Конвертировать"], systemImage: "arrow.triangle.2.circlepath") }
+        .labelStyle(AdaptiveLabelStyle(iconOnly: compact))
         .buttonStyle(AccentButtonStyle())
         .disabled(appState.selectedAudioFileIDs.isEmpty)
+        .help(compact ? loc["Конвертировать"] : "")
 
         // Куда сохраняем: показываем запомненную папку и даём сменить одним кликом.
         if let folder = conversionQueue.lastOutputFolder {
@@ -232,14 +241,14 @@ struct TrackListView: View {
     @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
     @EnvironmentObject private var loc: Localization
     
-    private var filteredLibrary: [AudioFile] {
-        var items = appState.library
-        if let folder = filterFolder {
-            items = items.filter { $0.url.deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL }
+    /// Source→destination for every finished conversion, computed once per queue
+    /// change instead of scanning `jobs` inside every visible row's body.
+    private var completedDestinations: [URL: URL] {
+        var map: [URL: URL] = [:]
+        for job in conversionQueue.jobs where job.status == .completed {
+            map[job.sourceURL] = job.destinationURL
         }
-        let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if term.isEmpty { return items }
-        return items.filter { $0.searchableText.localizedCaseInsensitiveContains(term) }
+        return map
     }
     
     private func statusColor(_ severity: AppViewModel.LibraryStatus.Severity) -> Color {
@@ -251,7 +260,11 @@ struct TrackListView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        // Computed once per body evaluation via the model's derived helper —
+        // no per-track string building, and referenced everywhere below instead
+        // of recomputing the filter multiple times.
+        let visibleLibrary = appState.filteredLibrary(searchText: searchText, filterFolder: filterFolder)
+        return VStack(spacing: 0) {
             // Header
             HStack(spacing: 12) {
                 Text("#").frame(width: 30, alignment: .leading)
@@ -272,7 +285,7 @@ struct TrackListView: View {
             
             Divider().background(Theme.Colors.border)
             
-            if filteredLibrary.isEmpty {
+            if visibleLibrary.isEmpty {
                 Spacer()
                 VStack(spacing: 8) {
                     Image(systemName: "music.note.list")
@@ -284,13 +297,15 @@ struct TrackListView: View {
                 }
                 Spacer()
             } else {
+                let destinations = completedDestinations
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(Array(filteredLibrary.enumerated()), id: \.element.id) { index, file in
+                        ForEach(Array(visibleLibrary.enumerated()), id: \.element.id) { index, file in
                             TrackRowView(
                                 index: index + 1,
                                 file: file,
-                                isSelected: appState.selectedAudioFileIDs.contains(file.id)
+                                isSelected: appState.selectedAudioFileIDs.contains(file.id),
+                                convertedDestination: destinations[file.url]
                             )
                             .contentShape(Rectangle())
                             .simultaneousGesture(TapGesture(count: 2).onEnded {
@@ -302,7 +317,7 @@ struct TrackListView: View {
                                 if flags.contains(.command) {
                                     appState.toggleSelection(for: file.id)
                                 } else if flags.contains(.shift) {
-                                    appState.selectRange(from: appState.lastSelectedTrackID, to: file.id, in: filteredLibrary)
+                                    appState.selectRange(from: appState.lastSelectedTrackID, to: file.id, in: visibleLibrary)
                                 } else {
                                     appState.selectedAudioFileIDs = [file.id]
                                     appState.lastSelectedTrackID = file.id
@@ -330,7 +345,7 @@ struct TrackListView: View {
                                 } label: { Label(loc["Изменить метаданные"], systemImage: "tag") }
                                 Divider()
                                 Button {
-                                    appState.selectAll(in: filteredLibrary)
+                                    appState.selectAll(in: visibleLibrary)
                                 } label: { Label(loc["Выбрать всё"], systemImage: "checkmark.circle.fill") }
                                 Button {
                                     appState.deselectAll()
@@ -352,7 +367,7 @@ struct TrackListView: View {
             
             // Нижний статус-бар
             HStack(spacing: 10) {
-                Text("\(filteredLibrary.count) \(loc["треков"])")
+                Text("\(visibleLibrary.count) \(loc["треков"])")
                     .foregroundStyle(Theme.Colors.textMuted)
 
                 if let status = appState.libraryStatus {
@@ -423,11 +438,13 @@ struct TrackRowView: View {
     let index: Int
     let file: AudioFile
     let isSelected: Bool
-    
+    /// Destination of this track's finished conversion, if any. Passed down as a
+    /// plain value so the row no longer observes the whole conversion queue —
+    /// previously every row re-rendered on each job's progress tick.
+    let convertedDestination: URL?
+
     @State private var isHovered = false
-    @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
-    @EnvironmentObject private var appState: AppViewModel
-    
+
     var body: some View {
         HStack(spacing: 12) {
             Text("\(index)")
@@ -436,7 +453,7 @@ struct TrackRowView: View {
             
             // Артворк
             Group {
-                if let artworkURL = file.metadata.artworkLocation, let nsImage = NSImage(contentsOf: artworkURL) {
+                if let artworkURL = file.metadata.artworkLocation, let nsImage = RowContentCache.artwork(at: artworkURL) {
                     Image(nsImage: nsImage)
                         .resizable()
                         .scaledToFill()
@@ -461,9 +478,9 @@ struct TrackRowView: View {
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .lineLimit(1)
                 
-                if let job = conversionQueue.jobs.first(where: { $0.sourceURL == file.url && $0.status == .completed }) {
+                if let destinationURL = convertedDestination {
                     Button(action: {
-                        NSWorkspace.shared.activateFileViewerSelecting([job.destinationURL])
+                        NSWorkspace.shared.activateFileViewerSelecting([destinationURL])
                     }) {
                         Image(systemName: "folder.fill")
                             .foregroundStyle(Theme.Colors.accentPrimary)
@@ -499,7 +516,7 @@ struct TrackRowView: View {
                 .frame(width: 60, alignment: .trailing)
                 .foregroundStyle(Theme.Colors.textSecondary)
             
-            Text(formatSize(getFileSize(file.url)))
+            Text(formatSize(RowContentCache.fileSize(for: file.url)))
                 .frame(width: 60, alignment: .trailing)
                 .foregroundStyle(Theme.Colors.textMuted)
         }
@@ -527,12 +544,6 @@ struct TrackRowView: View {
         let mb = Double(bytes) / 1_048_576
         return String(format: "%.1f MB", mb)
     }
-    
-    private func getFileSize(_ url: URL) -> Int64 {
-        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
-              let size = attrs[.size] as? Int64 else { return 0 }
-        return size
-    }
 }
 
 // MARK: - Helpers
@@ -551,13 +562,10 @@ func startConversion(files: [AudioFile], conversionQueue: ConversionQueueViewMod
     }
     conversionQueue.lastOutputFolder = folder
 
-    let settings = ConversionSettings(
-        outputFormat: conversionQueue.selectedTargetFormat,
-        bitrate: .constant(kilobitsPerSecond: 320),
-        preserveMetadata: true,
-        preserveArtwork: true,
-        preserveFolderStructure: true
-    )
+    // Conversion parameters now come from user preferences instead of being
+    // hardcoded — output format from the toolbar picker, bitrate/metadata from
+    // Settings. See AppSettings.conversionSettings(format:).
+    let settings = AppSettings.shared.conversionSettings(format: conversionQueue.selectedTargetFormat)
     conversionQueue.enqueue(files: files, settings: settings, outputFolder: folder)
     appState.selectedSection = .conversion
 }

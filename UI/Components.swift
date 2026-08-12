@@ -67,6 +67,23 @@ struct DestructiveGhostButtonStyle: ButtonStyle {
     }
 }
 
+/// Лейбл, который в компактном режиме прячет текст и оставляет только иконку
+/// (текст сохраняется как accessibility-подпись). Один тип стиля — чтобы можно
+/// было переключать режим по `Bool` без стирания типов.
+struct AdaptiveLabelStyle: LabelStyle {
+    let iconOnly: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        if iconOnly {
+            configuration.icon
+        } else {
+            HStack(spacing: 6) {
+                configuration.icon
+                configuration.title
+            }
+        }
+    }
+}
+
 // MARK: - Поле поиска
 
 struct SearchTextFieldStyle: TextFieldStyle {

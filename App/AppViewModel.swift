@@ -20,6 +20,7 @@ final class AppViewModel: ObservableObject {
         case library
         case conversion
         case duplicates
+        case settings
         case folder(URL)
     }
 
@@ -30,7 +31,18 @@ final class AppViewModel: ObservableObject {
 
     @Published var selectedSection: NavigationSelection = .library
     @Published var inspectorTab: InspectorTab = .info
-    @Published private(set) var library: [AudioFile] = []
+    @Published private(set) var library: [AudioFile] = [] {
+        didSet { rebuildSearchIndex() }
+    }
+
+    /// Lowercased searchable text per track, rebuilt only when `library` itself
+    /// changes. Filtering used to call `AudioFile.searchableText` — which builds
+    /// a fresh joined string — for every track on every keystroke *and* on every
+    /// unrelated `body` re-eval (e.g. changing the selection). Prebuilding the
+    /// strings once per library mutation turns filtering into cheap dictionary
+    /// lookups. It can never go stale because every path that edits a track
+    /// reassigns `library`, which re-triggers the `didSet`.
+    private var searchIndex: [AudioFile.ID: String] = [:]
     @Published private(set) var duplicateGroups: [DuplicateGroup] = []
     @Published var selectedAudioFileIDs = Set<AudioFile.ID>()
     @Published var lastSelectedTrackID: AudioFile.ID?
@@ -95,6 +107,33 @@ final class AppViewModel: ObservableObject {
 
     var selectedAudioFiles: [AudioFile] {
         library.filter { selectedAudioFileIDs.contains($0.id) }
+    }
+
+    private func rebuildSearchIndex() {
+        var index: [AudioFile.ID: String] = [:]
+        index.reserveCapacity(library.count)
+        for file in library {
+            index[file.id] = file.searchableText.lowercased()
+        }
+        searchIndex = index
+    }
+
+    /// Derived, filtered view of the library for a list pane. Lives on the model
+    /// (not recomputed inside a SwiftUI `body`) so that selecting a track — which
+    /// republishes `AppViewModel` but leaves `library` untouched — no longer
+    /// re-runs an `O(n)` filter that rebuilds a searchable string per track.
+    /// The empty-search path (the common case) returns the folder slice without
+    /// touching the index at all.
+    func filteredLibrary(searchText: String, filterFolder: URL?) -> [AudioFile] {
+        var items = library
+        if let folder = filterFolder {
+            let target = folder.standardizedFileURL
+            items = items.filter { $0.url.deletingLastPathComponent().standardizedFileURL == target }
+        }
+
+        let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !term.isEmpty else { return items }
+        return items.filter { (searchIndex[$0.id] ?? "").contains(term) }
     }
 
     func presentImporter() {

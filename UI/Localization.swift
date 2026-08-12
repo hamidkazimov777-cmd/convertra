@@ -56,6 +56,24 @@ final class Localization: ObservableObject {
         "Удалить…": ("Delete…", "Eliminar…"),
         "Язык": ("Language", "Idioma"),
 
+        // Настройки
+        "Настройки": ("Settings", "Ajustes"),
+        "Основные": ("General", "General"),
+        "Язык интерфейса приложения.": ("Interface language of the app.", "Idioma de la interfaz de la app."),
+        "Кеш обложек": ("Artwork cache", "Caché de portadas"),
+        "Освобождает память, занятую миниатюрами обложек. Файлы не удаляются.": ("Frees memory used by artwork thumbnails. No files are deleted.", "Libera la memoria de las miniaturas de portadas. No se eliminan archivos."),
+        "Очистить кеш": ("Clear cache", "Vaciar caché"),
+        "Кеш очищен": ("Cache cleared", "Caché vaciada"),
+        "Формат по умолчанию": ("Default format", "Formato predeterminado"),
+        "Формат, предвыбранный в панели конвертации.": ("Format preselected in the conversion toolbar.", "Formato preseleccionado en la barra de conversión."),
+        "Битрейт MP3": ("MP3 bitrate", "Tasa de bits MP3"),
+        "Постоянный битрейт для MP3. Не влияет на WAV/FLAC/AIFF.": ("Constant bitrate for MP3. Does not affect WAV/FLAC/AIFF.", "Tasa de bits constante para MP3. No afecta a WAV/FLAC/AIFF."),
+        "Сохранять метаданные": ("Preserve metadata", "Conservar metadatos"),
+        "Переносить теги исходного файла в конвертированный.": ("Copy the source file's tags into the converted file.", "Copiar las etiquetas del archivo original al convertido."),
+        "Одновременных конвертаций": ("Simultaneous conversions", "Conversiones simultáneas"),
+        "Сколько файлов конвертируется параллельно. Меньше — стабильнее, больше — быстрее.": ("How many files convert in parallel. Fewer is more stable, more is faster.", "Cuántos archivos se convierten en paralelo. Menos es más estable, más es más rápido."),
+        "Настройки сохраняются автоматически и применяются к новым конвертациям.": ("Settings are saved automatically and apply to new conversions.", "Los ajustes se guardan automáticamente y se aplican a nuevas conversiones."),
+
         // Library header / drop / toolbar
         "Импорт": ("Import", "Importar"),
         "Конвертировать в MP3 320": ("Convert to MP3 320", "Convertir a MP3 320"),

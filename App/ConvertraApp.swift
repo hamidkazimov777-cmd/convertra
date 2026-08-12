@@ -5,6 +5,7 @@ struct ConvertraApp: App {
     @StateObject private var appState = AppViewModel()
     @StateObject private var conversionQueue = ConversionQueueViewModel()
     @StateObject private var loc = Localization.shared
+    @StateObject private var settings = AppSettings.shared
 
     var body: some Scene {
         WindowGroup {
@@ -12,6 +13,7 @@ struct ConvertraApp: App {
                 .environmentObject(appState)
                 .environmentObject(conversionQueue)
                 .environmentObject(loc)
+                .environmentObject(settings)
                 .frame(minWidth: 980, minHeight: 620)
                 .preferredColorScheme(.dark)
         }

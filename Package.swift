@@ -31,6 +31,7 @@ let package = Package(
             sources: [
                 "App/ConvertraApp.swift",
                 "App/AppViewModel.swift",
+                "App/AppSettings.swift",
                 "App/ContentView.swift",
                 "UI/Theme.swift",
                 "UI/Localization.swift",
@@ -41,6 +42,8 @@ let package = Package(
                 "UI/InspectorView.swift",
                 "UI/BottomPlayerView.swift",
                 "UI/WaveformShape.swift",
+                "UI/RowContentCache.swift",
+                "UI/SettingsView.swift",
                 "Features/Library/LibraryView.swift",
                 "Core/Audio/SupportedAudioFormat.swift",
                 "Core/Services/AudioLibraryScanner.swift",

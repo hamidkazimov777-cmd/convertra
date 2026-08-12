@@ -28,6 +28,8 @@ struct MainLayoutView: View {
                                 ConversionQueueView()
                             case .duplicates:
                                 DuplicatesView()
+                            case .settings:
+                                SettingsView()
                             case .folder(let url):
                                 LibraryView(filterFolder: url)
                             }
