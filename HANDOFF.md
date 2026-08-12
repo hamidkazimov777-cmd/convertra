@@ -1,7 +1,7 @@
 # Convertra — Project Handoff Document
 
 ## 1. PROJECT STATE
-- **Current Stage**: Stage 4.14 — Amber Rebrand (violet → amber, new app icon) (COMPLETE)
+- **Current Stage**: Stage 4.15 — Green Rebrand + New Icon (waveform → dotted arrow) (COMPLETE)
 - **Completed Roadmap**:
   - Stage 1: Foundation & Shared Domain Models (macOS 12+ SwiftUI app shell, AudioFile, AudioMetadata, AudioAnalysis, CamelotKey).
   - Stage 2: Library Ingestion & Delta-Sync CoreData/SQLite Persistence (`AudioLibraryScanner`, `LibraryPersistenceStore`).
@@ -100,6 +100,13 @@
     - **Colours**: `UI/Theme.swift` primary accent moved violet→amber — `accentPrimary #676CF4→#F0A02A`, `accentBright #7689FF→#FFBF57`, `accentDeep #574EDD→#CF7D1C`, `accentHover #7C81FF→#FFBF57`, `accentPressed #574EDD→#CF7D1C`, `accentMuted #8E92E8→#C99A5F`; `bgSelected` retinted amber (`#2A2416` dark / `#FBF1DB` light). Every accented surface (sidebar app-mark + selected pill, primary/convert buttons, drop-zone halo, play button, volume slider, waveform, focus rings) recolours from these tokens — no per-view edits needed. The `energy` amber and `waveformRamp` were already warm and are unchanged.
     - **App icon**: `Resources/AppIcon.png` regenerated as an amber gradient (`#FFC463→#F0A02A→#CF7D1C`) rounded square with the white convert glyph (was violet). `./package_app.sh` rebuilds `AppIcon.icns` from it. Verified the packaged `.icns` renders amber; the macOS Dock/Finder icon cache may need a refresh (`killall Dock Finder`) on machines that cached the old icon.
     - **Verification**: `swift build` clean; `./package_app.sh` clean (ad-hoc, `valid on disk`); launched — sidebar mark, selected tab, convert button, drop halo and volume slider all render amber, no violet remaining.
+  - **Stage 4.15 — Green Rebrand + New Icon (Current session)**:
+    - **Why**: amber read as "too orange"; brand moved to **green** (matches the site's green tokens `#31B465 / #4ADE80 / #228B49`), and the icon was redesigned to a distinctive **waveform → green dotted-arrow** mark on a dark graphite square (audio-conversion motif) instead of the gradient-square + refresh-glyph.
+    - **Colours** (`UI/Theme.swift`): `accentPrimary #31B465`, `accentBright #4ADE80`, `accentDeep #228B49`, `accentHover #4ADE80`, `accentPressed #228B49`, `accentMuted #64B584`; `energy`/`energyBright` also green; `bgSelected` retinted green (`#17251C` / `#E4F7EA`); `waveformRamp` recoloured to a green low→hot scale (no amber/orange).
+    - **New icon**: `Resources/AppIcon.png` regenerated (dark square, grey waveform bars → green dotted arrow); `package_app.sh` rebuilds `AppIcon.icns` from it. Generator: `convertra-site/scripts/icon-gen.mjs` (shared with the website favicon/icon set).
+    - **In-app mark now uses the real icon**: `SplashView` and `SidebarView` previously **drew** a gradient square + `arrow.triangle.2.circlepath` glyph, so they did NOT reflect the new icon. Both now render `NSImage.bundled("AppIcon")` (clipped to a rounded rect, with a graceful `accentGradient` fallback). `Resources` is `.process`-bundled so `Bundle.module` resolves `AppIcon.png` in debug and release.
+    - **macOS icon cache**: Dock/Finder may keep the old icon after a rebuild — bust with `killall iconservicesagent Dock Finder` and/or re-register via `lsregister -f Convertra.app`; a system-store clear needs sudo. The bundle `.icns` itself is correct.
+    - **Verification**: `swift build` + `./package_app.sh` clean; launched — UI fully green, splash + sidebar show the new waveform/arrow icon, Dock/Finder icon updated after cache bust.
 - **Project Status**: Core app release-ready; analysis accuracy now honestly benchmarked (see Section 2). Duplicate detection and library management (blocks C/D) remain for a future pass. Redesign builds clean via `swift build`; runs via `./.build/debug/Convertra`. Distribution note: the bundle is **ad-hoc signed** — it runs, but downloaded copies hit Gatekeeper (right-click → Open / `xattr -cr` to bypass); a public "Download" button needs Apple Developer ID signing + notarization.
 
 ---

@@ -44,25 +44,25 @@ struct SplashView: View {
                 .opacity(iconRevealed ? 1 : 0)
 
             VStack(spacing: 30) {
-                // Иконка приложения — фирменный градиентный квадрат со стрелками
+                // Иконка приложения — реальный AppIcon (волна → зелёная стрелка)
                 shineWrapped {
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(Theme.Colors.accentGradient)
-                        .frame(width: 132, height: 132)
-                        .overlay(
+                    Group {
+                        if let icon = NSImage.bundled("AppIcon") {
+                            Image(nsImage: icon)
+                                .resizable()
+                                .interpolation(.high)
+                                .frame(width: 132, height: 132)
+                                .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                        } else {
                             RoundedRectangle(cornerRadius: 30, style: .continuous)
-                                .fill(LinearGradient(colors: [.white.opacity(0.22), .clear],
-                                                     startPoint: .top, endPoint: .bottom))
-                        )
-                        .overlay(
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 62, weight: .bold))
-                                .foregroundStyle(.white)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                                .strokeBorder(.white.opacity(0.14), lineWidth: 1)
-                        )
+                                .fill(Theme.Colors.accentGradient)
+                                .frame(width: 132, height: 132)
+                        }
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 30, style: .continuous)
+                            .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                    )
                 }
                 .shadow(color: Theme.Colors.accentPrimary.opacity(0.45), radius: 30, y: 12)
                 .scaleEffect(iconRevealed ? 1 : 0.86)

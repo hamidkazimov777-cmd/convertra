@@ -16,15 +16,20 @@ struct SidebarView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Логотип
             HStack(spacing: 9) {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Theme.Colors.accentGradient)
-                    .frame(width: 26, height: 26)
-                    .overlay(
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.white)
-                    )
-                    .accentGlow(0.5)
+                Group {
+                    if let icon = NSImage.bundled("AppIcon") {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .interpolation(.high)
+                            .frame(width: 26, height: 26)
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    } else {
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(Theme.Colors.accentGradient)
+                            .frame(width: 26, height: 26)
+                    }
+                }
+                .accentGlow(0.5)
                 Text("Convertra")
                     .font(.inter(size: 18, weight: .bold))
                     .foregroundStyle(Theme.Colors.textPrimary)

@@ -38,19 +38,19 @@ enum Theme {
         static let bgSecondary = adaptive(dark: "#18181C", light: "#FFFFFF") // raised card / panel
         static let bgElevated = adaptive(dark: "#1B1C21", light: "#FFFFFF")  // popover / menu
         static let bgHover = adaptive(dark: "#1E1F23", light: "#EAECEF")     // hover surface
-        static let bgSelected = adaptive(dark: "#2A2416", light: "#FBF1DB")  // selected (amber-tinted)
+        static let bgSelected = adaptive(dark: "#17251C", light: "#E4F7EA")  // selected (green-tinted)
 
-        // MARK: Primary accent (amber / industrial) — shared across themes
-        static let accentPrimary = Color(hex: "#F0A02A")
-        static let accentBright = Color(hex: "#FFBF57")
-        static let accentDeep = Color(hex: "#CF7D1C")
-        static let accentHover = Color(hex: "#FFBF57")
-        static let accentPressed = Color(hex: "#CF7D1C")
-        static let accentMuted = Color(hex: "#C99A5F")
+        // MARK: Primary accent (green) — shared across themes
+        static let accentPrimary = Color(hex: "#31B465")
+        static let accentBright = Color(hex: "#4ADE80")
+        static let accentDeep = Color(hex: "#228B49")
+        static let accentHover = Color(hex: "#4ADE80")
+        static let accentPressed = Color(hex: "#228B49")
+        static let accentMuted = Color(hex: "#64B584")
 
-        // MARK: Energy accent (warm amber — ratings, hot signals)
-        static let energy = Color(hex: "#EFA831")
-        static let energyBright = Color(hex: "#FFC24D")
+        // MARK: Energy accent (green — ratings, hot signals)
+        static let energy = Color(hex: "#31B465")
+        static let energyBright = Color(hex: "#4ADE80")
 
         // MARK: Semantic
         static let destructive = Color(hex: "#FF6467")
@@ -70,13 +70,13 @@ enum Theme {
             colors: [accentBright, accentDeep],
             startPoint: .topLeading, endPoint: .bottomTrailing
         )
-        /// Signature energy-colored waveform ramp (low → hot).
+        /// Signature energy-colored waveform ramp (low → hot, green scale).
         static let waveformRamp: [Color] = [
-            Color(hex: "#4ADE80"), // green — calm
-            Color(hex: "#A3E635"), // lime
-            Color(hex: "#EAB308"), // yellow
-            Color(hex: "#EFA831"), // amber
-            Color(hex: "#F97316"), // orange — hot
+            Color(hex: "#14532D"), // deep green — calm
+            Color(hex: "#16A34A"), // green
+            Color(hex: "#22C55E"), // emerald
+            Color(hex: "#4ADE80"), // bright green
+            Color(hex: "#86EFAC"), // mint — hot
         ]
     }
 
