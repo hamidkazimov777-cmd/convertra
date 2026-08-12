@@ -40,10 +40,14 @@ actor AudioConversionEngine {
         if job.settings.preserveMetadata {
             arguments.append(contentsOf: ["-map_metadata", "0"])
         }
-        
-        // Artwork is typically handled automatically by FFmpeg's default stream selection
-        // when converting audio formats that support embedded pictures.
-        
+
+        // Embedded cover art rides along as a video stream. When the user opts
+        // out we drop it with `-vn`; when they keep it we leave FFmpeg's default
+        // stream selection to copy it wherever the target format supports it.
+        if !job.settings.preserveArtwork {
+            arguments.append("-vn")
+        }
+
         arguments.append("-y")
         arguments.append(tempURL.path)
         
@@ -53,6 +57,12 @@ actor AudioConversionEngine {
         _ = try await runner.run(arguments: arguments)
         
         do {
+            // The destination may live in a recreated sub-folder tree (preserve
+            // folder structure), so make sure the parent exists before moving.
+            try FileManager.default.createDirectory(
+                at: job.destinationURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
             if FileManager.default.fileExists(atPath: job.destinationURL.path) {
                 _ = try FileManager.default.replaceItemAt(job.destinationURL, withItemAt: tempURL)
             } else {

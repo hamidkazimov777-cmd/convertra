@@ -1,7 +1,7 @@
 # Convertra — Project Handoff Document
 
 ## 1. PROJECT STATE
-- **Current Stage**: Stage 4.6 — Bounded Conversion Concurrency (COMPLETE)
+- **Current Stage**: Stage 4.7 — Working Artwork & Folder-Structure Flags (COMPLETE)
 - **Completed Roadmap**:
   - Stage 1: Foundation & Shared Domain Models (macOS 12+ SwiftUI app shell, AudioFile, AudioMetadata, AudioAnalysis, CamelotKey).
   - Stage 2: Library Ingestion & Delta-Sync CoreData/SQLite Persistence (`AudioLibraryScanner`, `LibraryPersistenceStore`).
@@ -55,6 +55,12 @@
     - **Fix — self-draining bounded queue**: replaced `startAll()` with `pumpQueue()` / `startJob(_:)` / `finishJob(_:)`. `pumpQueue` starts queued jobs only while `activeConversionCount < maxParallel`; each job, on completion/cancel/failure, decrements the count and calls `pumpQueue` again, so the queue drains one freed slot at a time. `enqueue` now calls `pumpQueue`. `cancelAll` additionally marks still-`.queued` jobs `.cancelled` so the pump won't pick them up after a cancel. Removed the now-unused `clearTask`. No retry path existed for `.failed` jobs (UI only offers "remove"), so dropping `.failed` from the start filter changed nothing.
     - **User setting**: `AppSettings.maxParallelConversions` (persisted), exposed as a picker in Settings → Conversion ("Simultaneous conversions", options 1/2/3/4/6/8). Default `defaultParallelism = min(max(2, cores − 1), 6)` — throughput-oriented (use almost every core, leave one for the UI, cap at 6). Set it to 1 for strictly sequential conversion.
     - **Verification**: `swift build` clean; release bundle rebuilt (`./package_app.sh`, ad-hoc, `valid on disk`) and launched.
+  - **Stage 4.7 — Working Artwork & Folder-Structure Flags (Current session)**:
+    - **Closes the Stage 4.5 debt**: `preserveArtwork` and `preserveFolderStructure` on `ConversionSettings` were previously ignored by the engine, so they were deliberately left out of Settings. They are now actually honoured and exposed as real toggles.
+    - **`preserveArtwork`** — `AudioConversionEngine.convert` appends `-vn` to strip the embedded cover-art (video) stream when the flag is off; when on it leaves FFmpeg's default stream copy (art survives where the target format supports it). Replaced the old "artwork is automatic" comment.
+    - **`preserveFolderStructure`** — `ConversionQueueViewModel` computes the batch's deepest **common ancestor** (`commonAncestor(of:)`) and recreates each source file's path relative to it under the output folder (`relativeDirectory(of:from:)`, wired through `getDestinationURL(..., sourceRoot:)`). A flat/single selection degrades to the old flat output (no surprise sub-folders). The engine now `createDirectory(withIntermediateDirectories:)` on the destination's parent before moving, so recreated sub-trees are made on demand.
+    - **Settings**: two new toggles in the Conversion card ("Сохранять обложку", "Сохранять структуру папок"), bound to new persisted `AppSettings.preserveArtwork` / `preserveFolderStructure` (default `true`). `conversionSettings(format:)` now passes the real values instead of hardcoded `true`. RU/EN/ES strings added.
+    - **Verification**: `swift build` clean; common-ancestor/relative-path logic checked against multi-folder, flat and single-file batches; release bundle rebuilt (`./package_app.sh`, `valid on disk`) and launched.
 - **Project Status**: Core app release-ready; analysis accuracy now honestly benchmarked (see Section 2). Duplicate detection and library management (blocks C/D) remain for a future pass. Redesign builds clean via `swift build`; runs via `./.build/debug/Convertra`. Distribution note: the bundle is **ad-hoc signed** — it runs, but downloaded copies hit Gatekeeper (right-click → Open / `xattr -cr` to bypass); a public "Download" button needs Apple Developer ID signing + notarization.
 
 ---

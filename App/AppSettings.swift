@@ -31,6 +31,17 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(preserveMetadata, forKey: Keys.preserveMetadata) }
     }
 
+    /// Keeps embedded cover art; when off the engine strips it (`-vn`).
+    @Published var preserveArtwork: Bool {
+        didSet { UserDefaults.standard.set(preserveArtwork, forKey: Keys.preserveArtwork) }
+    }
+
+    /// Recreates the source folder tree under the output folder instead of
+    /// flattening every converted file into one directory.
+    @Published var preserveFolderStructure: Bool {
+        didSet { UserDefaults.standard.set(preserveFolderStructure, forKey: Keys.preserveFolderStructure) }
+    }
+
     /// Maximum number of conversions the queue runs at once. Previously the
     /// queue launched an ffmpeg process for *every* job simultaneously, which on
     /// a large batch spawned dozens of processes and thrashed the machine. A
@@ -54,6 +65,8 @@ final class AppSettings: ObservableObject {
         static let defaultOutputFormat = "defaultOutputFormat"
         static let mp3Bitrate = "mp3BitrateKbps"
         static let preserveMetadata = "preserveMetadata"
+        static let preserveArtwork = "preserveArtwork"
+        static let preserveFolderStructure = "preserveFolderStructure"
         static let maxParallel = "maxParallelConversions"
     }
 
@@ -65,20 +78,20 @@ final class AppSettings: ObservableObject {
         let savedBitrate = defaults.integer(forKey: Keys.mp3Bitrate)
         mp3BitrateKbps = savedBitrate == 0 ? 320 : savedBitrate
         preserveMetadata = defaults.object(forKey: Keys.preserveMetadata) as? Bool ?? true
+        preserveArtwork = defaults.object(forKey: Keys.preserveArtwork) as? Bool ?? true
+        preserveFolderStructure = defaults.object(forKey: Keys.preserveFolderStructure) as? Bool ?? true
         let savedParallel = defaults.integer(forKey: Keys.maxParallel)
         maxParallelConversions = savedParallel == 0 ? Self.defaultParallelism : savedParallel
     }
 
-    /// Builds the settings for a conversion using the current preferences. The
-    /// two engine-ignored flags stay `true` to preserve existing behaviour
-    /// exactly until the engine learns to honour them.
+    /// Builds the settings for a conversion using the current preferences.
     func conversionSettings(format: ConversionSettings.OutputFormat) -> ConversionSettings {
         ConversionSettings(
             outputFormat: format,
             bitrate: .constant(kilobitsPerSecond: mp3BitrateKbps),
             preserveMetadata: preserveMetadata,
-            preserveArtwork: true,
-            preserveFolderStructure: true
+            preserveArtwork: preserveArtwork,
+            preserveFolderStructure: preserveFolderStructure
         )
     }
 }

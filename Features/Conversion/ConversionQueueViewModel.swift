@@ -44,8 +44,13 @@ final class ConversionQueueViewModel: ObservableObject {
     }
     
     func enqueue(files: [AudioFile], settings: ConversionSettings, outputFolder: URL) {
+        // When preserving structure, recreate each file's path relative to the
+        // batch's common ancestor under the output folder.
+        let sourceRoot = settings.preserveFolderStructure
+            ? Self.commonAncestor(of: files.map(\.url))
+            : nil
         let newJobs = files.map { file in
-            let destURL = getDestinationURL(for: file, settings: settings, outputFolder: outputFolder)
+            let destURL = getDestinationURL(for: file, settings: settings, outputFolder: outputFolder, sourceRoot: sourceRoot)
             return ConversionJob(
                 sourceURL: file.url,
                 destinationURL: destURL,
@@ -132,9 +137,41 @@ final class ConversionQueueViewModel: ObservableObject {
         }
     }
     
-    private func getDestinationURL(for file: AudioFile, settings: ConversionSettings, outputFolder: URL) -> URL {
+    private func getDestinationURL(for file: AudioFile, settings: ConversionSettings, outputFolder: URL, sourceRoot: URL?) -> URL {
         let sourceURL = file.url
         let newName = sourceURL.deletingPathExtension().lastPathComponent
-        return outputFolder.appendingPathComponent(newName).appendingPathExtension(settings.outputFormat.rawValue)
+        let ext = settings.outputFormat.rawValue
+
+        if settings.preserveFolderStructure, let root = sourceRoot {
+            let relativeDir = Self.relativeDirectory(of: sourceURL, from: root)
+            let targetDir = relativeDir.isEmpty ? outputFolder : outputFolder.appendingPathComponent(relativeDir)
+            return targetDir.appendingPathComponent(newName).appendingPathExtension(ext)
+        }
+        return outputFolder.appendingPathComponent(newName).appendingPathExtension(ext)
+    }
+
+    /// Deepest directory that contains every URL in the batch. Used as the base
+    /// for recreating the source folder tree under the output folder.
+    private static func commonAncestor(of urls: [URL]) -> URL? {
+        guard let first = urls.first else { return nil }
+        var ancestor = first.deletingLastPathComponent().standardizedFileURL.pathComponents
+        for url in urls.dropFirst() {
+            let comps = url.deletingLastPathComponent().standardizedFileURL.pathComponents
+            var i = 0
+            while i < ancestor.count, i < comps.count, ancestor[i] == comps[i] { i += 1 }
+            ancestor = Array(ancestor.prefix(i))
+        }
+        guard !ancestor.isEmpty else { return nil }
+        return URL(fileURLWithPath: NSString.path(withComponents: ancestor))
+    }
+
+    /// Path of `fileURL`'s parent directory relative to `root` (empty when the
+    /// file sits directly in `root`).
+    private static func relativeDirectory(of fileURL: URL, from root: URL) -> String {
+        let fileDir = fileURL.deletingLastPathComponent().standardizedFileURL.pathComponents
+        let rootComps = root.standardizedFileURL.pathComponents
+        guard fileDir.count > rootComps.count,
+              Array(fileDir.prefix(rootComps.count)) == rootComps else { return "" }
+        return fileDir.suffix(fileDir.count - rootComps.count).joined(separator: "/")
     }
 }

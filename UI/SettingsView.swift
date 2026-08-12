@@ -132,6 +132,30 @@ struct SettingsView: View {
             Divider().background(Theme.Colors.borderSubtle)
 
             settingRow(
+                title: loc["Сохранять обложку"],
+                subtitle: loc["Оставлять встроенную обложку. Выкл — обложка удаляется из результата."]
+            ) {
+                Toggle("", isOn: $settings.preserveArtwork)
+                    .toggleStyle(.switch)
+                    .tint(Theme.Colors.accentPrimary)
+                    .labelsHidden()
+            }
+
+            Divider().background(Theme.Colors.borderSubtle)
+
+            settingRow(
+                title: loc["Сохранять структуру папок"],
+                subtitle: loc["Воссоздавать дерево исходных папок в папке назначения вместо плоского списка."]
+            ) {
+                Toggle("", isOn: $settings.preserveFolderStructure)
+                    .toggleStyle(.switch)
+                    .tint(Theme.Colors.accentPrimary)
+                    .labelsHidden()
+            }
+
+            Divider().background(Theme.Colors.borderSubtle)
+
+            settingRow(
                 title: loc["Одновременных конвертаций"],
                 subtitle: loc["Сколько файлов конвертируется параллельно. Меньше — стабильнее, больше — быстрее."]
             ) {
