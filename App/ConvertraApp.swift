@@ -15,7 +15,7 @@ struct ConvertraApp: App {
                 .environmentObject(loc)
                 .environmentObject(settings)
                 .frame(minWidth: 980, minHeight: 620)
-                .preferredColorScheme(settings.appearance.colorScheme)
+                .onAppear { settings.applyAppearance() }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {

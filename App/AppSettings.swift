@@ -1,8 +1,9 @@
 import Foundation
 import SwiftUI
+import AppKit
 
 /// Interface appearance choice. `.system` follows macOS; the others force a
-/// specific theme via `.preferredColorScheme`.
+/// specific theme.
 enum AppearanceMode: String, CaseIterable, Identifiable {
     case system
     case light
@@ -10,12 +11,19 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// `nil` means "follow the system" for `.preferredColorScheme`.
-    var colorScheme: ColorScheme? {
+    /// AppKit appearance to install on `NSApplication`. `nil` (System) clears
+    /// the app-level override so macOS drives the theme and live-updates it.
+    ///
+    /// This is the reliable path on macOS: SwiftUI's `.preferredColorScheme(nil)`
+    /// does **not** follow the system appearance for a `WindowGroup` — it falls
+    /// back to Aqua (Light), so "System" would always open light. Driving
+    /// `NSApp.appearance` instead makes both the window chrome and the dynamic
+    /// `Theme.Colors` NSColors resolve against the true effective appearance.
+    var nsAppearance: NSAppearance? {
         switch self {
         case .system: return nil
-        case .light: return .light
-        case .dark: return .dark
+        case .light: return NSAppearance(named: .aqua)
+        case .dark: return NSAppearance(named: .darkAqua)
         }
     }
 }
@@ -74,7 +82,18 @@ final class AppSettings: ObservableObject {
 
     /// Interface theme (System / Light / Dark).
     @Published var appearance: AppearanceMode {
-        didSet { UserDefaults.standard.set(appearance.rawValue, forKey: Keys.appearance) }
+        didSet {
+            UserDefaults.standard.set(appearance.rawValue, forKey: Keys.appearance)
+            applyAppearance()
+        }
+    }
+
+    /// Installs the current appearance on `NSApplication`. Call once at launch
+    /// (after the app has an `NSApp`) and it is re-applied automatically whenever
+    /// `appearance` changes, so switching in Settings reskins the app live and
+    /// `.system` follows macOS — including live OS theme changes.
+    func applyAppearance() {
+        NSApplication.shared.appearance = appearance.nsAppearance
     }
 
     /// Maximum number of conversions the queue runs at once. Previously the

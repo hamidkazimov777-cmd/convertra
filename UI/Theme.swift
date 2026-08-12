@@ -6,10 +6,10 @@ import AppKit
 // hairline borders, layered soft shadows + signature violet glow.
 //
 // Surfaces, text and borders are appearance-adaptive: each resolves to a dark
-// or light value against the current SwiftUI color scheme (driven by the
-// Appearance setting via `.preferredColorScheme`). The violet/amber accents,
-// gradients and waveform ramp are shared across both themes — they read on
-// either background — so only one value is kept for them.
+// or light value against the effective appearance (driven by the Appearance
+// setting via `NSApplication.appearance` — see `AppSettings.applyAppearance()`).
+// The violet/amber accents, gradients and waveform ramp are shared across both
+// themes — they read on either background — so only one value is kept for them.
 
 enum Theme {
     enum Colors {
