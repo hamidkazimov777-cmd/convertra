@@ -113,6 +113,68 @@ final class AppViewModel: ObservableObject {
         return Array(Set(urls)).sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
     }
 
+    /// Folders shown in the sidebar as a nested tree rooted at the common
+    /// ancestor of everything in the library (e.g. `music` with its sub-folders
+    /// nested under it), instead of a flat list of every track-holding folder.
+    var folderTree: [LibraryFolderNode] {
+        let leafFolders = Set(library.map { $0.url.deletingLastPathComponent().standardizedFileURL })
+        guard !leafFolders.isEmpty else { return [] }
+
+        guard let root = Self.commonAncestorDirectory(of: Array(leafFolders)) else {
+            // Disparate locations with no meaningful shared root — fall back to
+            // a flat list so the folders are still reachable.
+            return leafFolders
+                .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+                .map { LibraryFolderNode(url: $0, children: []) }
+        }
+
+        // Every directory from each leaf up to (and including) the root.
+        var allDirs: Set<URL> = []
+        for leaf in leafFolders {
+            var current = leaf.standardizedFileURL
+            while true {
+                allDirs.insert(current)
+                if current == root { break }
+                let parent = current.deletingLastPathComponent().standardizedFileURL
+                if parent == current { break }
+                current = parent
+            }
+        }
+        return [Self.buildFolderNode(root, from: allDirs)]
+    }
+
+    private static func buildFolderNode(_ url: URL, from allDirs: Set<URL>) -> LibraryFolderNode {
+        let children = allDirs
+            .filter { $0 != url && $0.deletingLastPathComponent().standardizedFileURL == url }
+            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+            .map { buildFolderNode($0, from: allDirs) }
+        return LibraryFolderNode(url: url, children: children)
+    }
+
+    /// Deepest shared directory of `urls`, or `nil` when they share only "/"
+    /// (i.e. live in unrelated locations).
+    private static func commonAncestorDirectory(of urls: [URL]) -> URL? {
+        guard let first = urls.first else { return nil }
+        var ancestor = first.standardizedFileURL.pathComponents
+        for url in urls.dropFirst() {
+            let comps = url.standardizedFileURL.pathComponents
+            var i = 0
+            while i < ancestor.count, i < comps.count, ancestor[i] == comps[i] { i += 1 }
+            ancestor = Array(ancestor.prefix(i))
+        }
+        guard ancestor.count > 1 else { return nil }
+        return URL(fileURLWithPath: NSString.path(withComponents: ancestor)).standardizedFileURL
+    }
+
+    /// Whether `url` sits inside `folder` (at any depth), used for folder
+    /// filtering and folder-scoped operations.
+    static func url(_ url: URL, isUnder folder: URL) -> Bool {
+        let folderComponents = folder.standardizedFileURL.pathComponents
+        let urlComponents = url.standardizedFileURL.pathComponents
+        guard urlComponents.count >= folderComponents.count else { return false }
+        return Array(urlComponents.prefix(folderComponents.count)) == folderComponents
+    }
+
     var selectedAudioFileCount: Int {
         selectedAudioFileIDs.count
     }
@@ -139,8 +201,9 @@ final class AppViewModel: ObservableObject {
     func filteredLibrary(searchText: String, filterFolder: URL?) -> [AudioFile] {
         var items = library
         if let folder = filterFolder {
-            let target = folder.standardizedFileURL
-            items = items.filter { $0.url.deletingLastPathComponent().standardizedFileURL == target }
+            // Include tracks in the folder *and its sub-folders*, so selecting a
+            // parent node in the tree shows everything beneath it.
+            items = items.filter { Self.url($0.url, isUnder: folder) }
         }
 
         let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -715,7 +778,7 @@ final class AppViewModel: ObservableObject {
     }
     
     private func removeFolderFromLibrary(url: URL) {
-        library.removeAll { $0.url.deletingLastPathComponent().standardizedFileURL == url.standardizedFileURL }
+        library.removeAll { Self.url($0.url, isUnder: url) }
         if selectedSection == .folder(url) {
             selectedSection = .library
         }
@@ -730,12 +793,14 @@ final class AppViewModel: ObservableObject {
                 try FileManager.default.moveItem(at: url, to: newURL)
                 
                 library = library.map { track in
-                    if track.url.deletingLastPathComponent().standardizedFileURL == url.standardizedFileURL {
-                        var updatedTrack = track
-                        updatedTrack.url = newURL.appendingPathComponent(track.url.lastPathComponent)
-                        return updatedTrack
-                    }
-                    return track
+                    guard Self.url(track.url, isUnder: url) else { return track }
+                    // Re-root the track's path from the old folder onto the new
+                    // one, preserving any sub-folder path beneath it.
+                    let relativeComponents = track.url.standardizedFileURL.pathComponents
+                        .dropFirst(url.standardizedFileURL.pathComponents.count)
+                    var updatedTrack = track
+                    updatedTrack.url = relativeComponents.reduce(newURL) { $0.appendingPathComponent($1) }
+                    return updatedTrack
                 }
                 
                 folderAliases.removeValue(forKey: url)
@@ -754,6 +819,16 @@ final class AppViewModel: ObservableObject {
             folderAliases[url] = newName
         }
     }
+}
+
+/// A folder in the sidebar tree: its URL plus any nested sub-folders that also
+/// contain (or lead to) library tracks.
+struct LibraryFolderNode: Identifiable, Hashable {
+    let url: URL
+    var children: [LibraryFolderNode]
+
+    var id: URL { url }
+    var name: String { url.lastPathComponent }
 }
 
 private extension Array {

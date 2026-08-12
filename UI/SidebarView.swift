@@ -10,7 +10,8 @@ struct SidebarView: View {
     @State private var folderToRename: URL?
     @State private var showingRenameSheet = false
     @State private var newFolderName = ""
-    
+    @State private var expandedFolders: Set<URL> = []
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Логотип
@@ -46,40 +47,15 @@ struct SidebarView: View {
                         appState.selectedSection = .duplicates
                     }
 
-                    if !appState.libraryFolders.isEmpty {
+                    let folderTree = appState.folderTree
+                    if !folderTree.isEmpty {
                         SectionLabel(text: loc["Папки"])
                             .padding(.top, 18)
                             .padding(.bottom, 6)
                             .padding(.horizontal, 14)
 
-                        ForEach(appState.libraryFolders, id: \.self) { url in
-                            let title = appState.folderAliases[url] ?? url.lastPathComponent
-                            SidebarItem(
-                                title: title,
-                                icon: "folder",
-                                isSelected: appState.selectedSection == .folder(url)
-                            ) {
-                                appState.selectedSection = .folder(url)
-                            }
-                            .contextMenu {
-                                Button {
-                                    appState.selectedSection = .folder(url)
-                                } label: { Label(loc["Открыть"], systemImage: "arrow.right.circle") }
-                                Button {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        appState.folderToRename = url
-                                        appState.newFolderName = title
-                                        appState.showingRenameSheet = true
-                                    }
-                                } label: { Label(loc["Переименовать…"], systemImage: "pencil") }
-                                Divider()
-                                Button(role: .destructive) {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                        appState.folderToDelete = url
-                                        appState.showingDeleteAlert = true
-                                    }
-                                } label: { Label(loc["Удалить…"], systemImage: "trash") }
-                            }
+                        ForEach(folderTree) { node in
+                            FolderTreeRow(node: node, depth: 0, expandedFolders: $expandedFolders)
                         }
                     }
                 }
@@ -140,6 +116,118 @@ struct LanguageSwitcher: View {
                 .fill(Theme.Colors.bgBase.opacity(0.6))
         )
         .hairline(10, color: Theme.Colors.borderSubtle)
+    }
+}
+
+// MARK: - Folder tree row (recursive, expandable)
+
+struct FolderTreeRow: View {
+    let node: LibraryFolderNode
+    let depth: Int
+    @Binding var expandedFolders: Set<URL>
+
+    @EnvironmentObject private var appState: AppViewModel
+    @EnvironmentObject private var loc: Localization
+    @State private var isHovered = false
+
+    private var isExpanded: Bool { expandedFolders.contains(node.url) }
+    private var isSelected: Bool { appState.selectedSection == .folder(node.url) }
+    private var hasChildren: Bool { !node.children.isEmpty }
+    private var title: String { appState.folderAliases[node.url] ?? node.name }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            rowLabel
+            if isExpanded {
+                ForEach(node.children) { child in
+                    FolderTreeRow(node: child, depth: depth + 1, expandedFolders: $expandedFolders)
+                }
+            }
+        }
+    }
+
+    private var rowLabel: some View {
+        HStack(spacing: 6) {
+            Group {
+                if hasChildren {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.textMuted)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .frame(width: 12)
+                        .contentShape(Rectangle())
+                        .onTapGesture { toggle() }
+                } else {
+                    Color.clear.frame(width: 12)
+                }
+            }
+
+            Image(systemName: "folder")
+                .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                .frame(width: 16)
+                .foregroundStyle(isSelected ? Theme.Colors.accentBright : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
+            Text(title)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 0)
+        }
+        .font(.inter(size: 13, weight: isSelected ? .semibold : .medium))
+        .foregroundStyle(isSelected ? Theme.Colors.textPrimary : (isHovered ? Theme.Colors.textPrimary : Theme.Colors.textSecondary))
+        .padding(.vertical, 7)
+        .padding(.trailing, 10)
+        .padding(.leading, 10 + CGFloat(depth) * 14)
+        .background(
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? Theme.Colors.bgSecondary : (isHovered ? Theme.Colors.bgHover : Color.clear))
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Theme.Colors.border, lineWidth: 1)
+                    Capsule().fill(Theme.Colors.accentGradient)
+                        .frame(width: 3, height: 14)
+                        .padding(.leading, 1)
+                }
+            }
+        )
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .onTapGesture { select() }
+        .contextMenu { menu }
+    }
+
+    @ViewBuilder private var menu: some View {
+        Button {
+            appState.selectedSection = .folder(node.url)
+        } label: { Label(loc["Открыть"], systemImage: "arrow.right.circle") }
+        Button {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                appState.folderToRename = node.url
+                appState.newFolderName = title
+                appState.showingRenameSheet = true
+            }
+        } label: { Label(loc["Переименовать…"], systemImage: "pencil") }
+        Divider()
+        Button(role: .destructive) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                appState.folderToDelete = node.url
+                appState.showingDeleteAlert = true
+            }
+        } label: { Label(loc["Удалить…"], systemImage: "trash") }
+    }
+
+    private func select() {
+        appState.selectedSection = .folder(node.url)
+        // Selecting a parent also reveals its children (never collapses on tap;
+        // use the chevron for that).
+        if hasChildren && !isExpanded {
+            withAnimation(.easeOut(duration: 0.15)) { expandedFolders.insert(node.url) }
+        }
+    }
+
+    private func toggle() {
+        withAnimation(.easeOut(duration: 0.15)) {
+            if isExpanded { expandedFolders.remove(node.url) } else { expandedFolders.insert(node.url) }
+        }
     }
 }
 

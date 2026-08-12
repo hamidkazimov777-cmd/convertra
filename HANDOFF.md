@@ -1,7 +1,7 @@
 # Convertra — Project Handoff Document
 
 ## 1. PROJECT STATE
-- **Current Stage**: Stage 4.10 — Folder Auto-Import (FSEvents) (COMPLETE)
+- **Current Stage**: Stage 4.11 — Nested Folder Tree in Sidebar (COMPLETE)
 - **Completed Roadmap**:
   - Stage 1: Foundation & Shared Domain Models (macOS 12+ SwiftUI app shell, AudioFile, AudioMetadata, AudioAnalysis, CamelotKey).
   - Stage 2: Library Ingestion & Delta-Sync CoreData/SQLite Persistence (`AudioLibraryScanner`, `LibraryPersistenceStore`).
@@ -79,6 +79,12 @@
     - **Concurrency**: FSEvents callback (C function on the main dispatch queue) hops onto the main actor via `Task { @MainActor in … }` before touching `AppViewModel`.
     - **Settings**: new "Библиотека" card — an "Автоимпорт из папки" toggle plus, once a folder is set, a "Папка" row showing the path with a "Изменить…" button. `SettingsView` now also takes `@EnvironmentObject AppViewModel`. RU/EN/ES strings added.
     - **Verification**: `swift build` clean; release bundle rebuilt (`./package_app.sh`, `valid on disk`) and launched — `restoreAutoImport` no-ops safely with no saved folder; app runs. End-to-end file-drop test is manual (pick a folder in Settings → drop an audio file in it). Watches a single folder only, by design.
+  - **Stage 4.11 — Nested Folder Tree in Sidebar (Current session)**:
+    - **Problem**: the sidebar "Папки" list was **flat** — every track-holding folder was a separate row, so a `music/` folder with dozens of sub-folders produced a huge flat wall of entries.
+    - **Tree model**: `AppViewModel.folderTree` builds a `[LibraryFolderNode]` (new value type: `url` + nested `children`). It takes the distinct track parent folders, finds their **common ancestor** (`commonAncestorDirectory`), collects every directory between each leaf and that root, and recursively assembles the hierarchy (`buildFolderNode`). Disparate locations with no shared root (common ancestor is just "/") fall back to a flat list. So `music` shows as one root with its sub-folders nested underneath.
+    - **Descendant-aware folder scope**: added `AppViewModel.url(_:isUnder:)`. Folder filtering (`filteredLibrary`) now matches a folder **and everything beneath it** (prefix match) instead of an exact parent, so selecting a parent node shows all tracks under it. `removeFolderFromLibrary` and the on-Mac `renameFolder` remap are now descendant-aware too (rename re-roots each descendant's path onto the new folder, preserving sub-paths) — previously a parent-folder rename would have stranded tracks in sub-folders.
+    - **Sidebar UI**: new recursive `FolderTreeRow` (chevron toggles expand/collapse; tapping the label selects the folder and reveals its children; indentation per depth; selection highlight + accent bar; the open/rename/delete context menu moved onto the row). Expansion state is in-session `@State expandedFolders: Set<URL>` in `SidebarView`. The old flat `ForEach(appState.libraryFolders)` was replaced; `libraryFolders` is retained (still a valid derived property) but no longer drives the sidebar.
+    - **Verification**: `swift build` clean; release bundle rebuilt (`./package_app.sh`, `valid on disk`) and launched — the sidebar now shows a single collapsed `music` root with a disclosure chevron instead of the flat folder wall.
 - **Project Status**: Core app release-ready; analysis accuracy now honestly benchmarked (see Section 2). Duplicate detection and library management (blocks C/D) remain for a future pass. Redesign builds clean via `swift build`; runs via `./.build/debug/Convertra`. Distribution note: the bundle is **ad-hoc signed** — it runs, but downloaded copies hit Gatekeeper (right-click → Open / `xattr -cr` to bypass); a public "Download" button needs Apple Developer ID signing + notarization.
 
 ---
