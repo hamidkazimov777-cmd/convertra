@@ -42,6 +42,16 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(preserveFolderStructure, forKey: Keys.preserveFolderStructure) }
     }
 
+    /// Target sample rate for conversions (`.original` keeps the source rate).
+    @Published var defaultSampleRate: ConversionSettings.SampleRate {
+        didSet { UserDefaults.standard.set(defaultSampleRate.rawValue, forKey: Keys.sampleRate) }
+    }
+
+    /// Target channel layout for conversions (`.original` keeps the source).
+    @Published var defaultChannels: ConversionSettings.ChannelLayout {
+        didSet { UserDefaults.standard.set(defaultChannels.rawValue, forKey: Keys.channels) }
+    }
+
     /// Maximum number of conversions the queue runs at once. Previously the
     /// queue launched an ffmpeg process for *every* job simultaneously, which on
     /// a large batch spawned dozens of processes and thrashed the machine. A
@@ -67,6 +77,8 @@ final class AppSettings: ObservableObject {
         static let preserveMetadata = "preserveMetadata"
         static let preserveArtwork = "preserveArtwork"
         static let preserveFolderStructure = "preserveFolderStructure"
+        static let sampleRate = "defaultSampleRate"
+        static let channels = "defaultChannels"
         static let maxParallel = "maxParallelConversions"
     }
 
@@ -80,6 +92,12 @@ final class AppSettings: ObservableObject {
         preserveMetadata = defaults.object(forKey: Keys.preserveMetadata) as? Bool ?? true
         preserveArtwork = defaults.object(forKey: Keys.preserveArtwork) as? Bool ?? true
         preserveFolderStructure = defaults.object(forKey: Keys.preserveFolderStructure) as? Bool ?? true
+        defaultSampleRate = ConversionSettings.SampleRate(
+            rawValue: defaults.string(forKey: Keys.sampleRate) ?? ""
+        ) ?? .original
+        defaultChannels = ConversionSettings.ChannelLayout(
+            rawValue: defaults.string(forKey: Keys.channels) ?? ""
+        ) ?? .original
         let savedParallel = defaults.integer(forKey: Keys.maxParallel)
         maxParallelConversions = savedParallel == 0 ? Self.defaultParallelism : savedParallel
     }
@@ -91,7 +109,9 @@ final class AppSettings: ObservableObject {
             bitrate: .constant(kilobitsPerSecond: mp3BitrateKbps),
             preserveMetadata: preserveMetadata,
             preserveArtwork: preserveArtwork,
-            preserveFolderStructure: preserveFolderStructure
+            preserveFolderStructure: preserveFolderStructure,
+            sampleRate: defaultSampleRate,
+            channels: defaultChannels
         )
     }
 }

@@ -1,7 +1,7 @@
 # Convertra — Project Handoff Document
 
 ## 1. PROJECT STATE
-- **Current Stage**: Stage 4.7 — Working Artwork & Folder-Structure Flags (COMPLETE)
+- **Current Stage**: Stage 4.8 — Sample Rate & Channel Conversion Options (COMPLETE)
 - **Completed Roadmap**:
   - Stage 1: Foundation & Shared Domain Models (macOS 12+ SwiftUI app shell, AudioFile, AudioMetadata, AudioAnalysis, CamelotKey).
   - Stage 2: Library Ingestion & Delta-Sync CoreData/SQLite Persistence (`AudioLibraryScanner`, `LibraryPersistenceStore`).
@@ -61,6 +61,11 @@
     - **`preserveFolderStructure`** — `ConversionQueueViewModel` computes the batch's deepest **common ancestor** (`commonAncestor(of:)`) and recreates each source file's path relative to it under the output folder (`relativeDirectory(of:from:)`, wired through `getDestinationURL(..., sourceRoot:)`). A flat/single selection degrades to the old flat output (no surprise sub-folders). The engine now `createDirectory(withIntermediateDirectories:)` on the destination's parent before moving, so recreated sub-trees are made on demand.
     - **Settings**: two new toggles in the Conversion card ("Сохранять обложку", "Сохранять структуру папок"), bound to new persisted `AppSettings.preserveArtwork` / `preserveFolderStructure` (default `true`). `conversionSettings(format:)` now passes the real values instead of hardcoded `true`. RU/EN/ES strings added.
     - **Verification**: `swift build` clean; common-ancestor/relative-path logic checked against multi-folder, flat and single-file batches; release bundle rebuilt (`./package_app.sh`, `valid on disk`) and launched.
+  - **Stage 4.8 — Sample Rate & Channel Conversion Options (Current session)**:
+    - **New engine parameters**: `ConversionSettings` gains `sampleRate: SampleRate` (`.original` / 44.1 / 48 / 96 kHz) and `channels: ChannelLayout` (`.original` / stereo / mono), both `String`-backed enums. `AudioConversionEngine.convert` appends `-ar <hz>` / `-ac <n>` only when a concrete target is chosen; `.original` (the default) leaves FFmpeg's source-matching behaviour untouched, so nothing changes for existing users.
+    - **Settings**: two pickers in the Conversion card — "Частота" (sample rate) and "Каналы" (channels) — bound to persisted `AppSettings.defaultSampleRate` / `defaultChannels` (default `.original`). Labels built in the view (`sampleRateLabel` shows "44.1/48/96 kHz", `channelLabel` reuses existing Стерео/Моно strings); new key "Оригинал" + two subtitle strings (RU/EN/ES).
+    - **Model/tests**: `ConversionSettings.mp3_320CBR` and `AppSettings.conversionSettings` updated to pass the new fields; `ConvertraModelTests.testDefaultConversionUses320KilobitCBRMP3` still passes (only asserts the pre-existing fields).
+    - **Verification**: `swift build` clean; `ConvertraModelTests` green; release bundle rebuilt (`./package_app.sh`, `valid on disk`) and launched.
 - **Project Status**: Core app release-ready; analysis accuracy now honestly benchmarked (see Section 2). Duplicate detection and library management (blocks C/D) remain for a future pass. Redesign builds clean via `swift build`; runs via `./.build/debug/Convertra`. Distribution note: the bundle is **ad-hoc signed** — it runs, but downloaded copies hit Gatekeeper (right-click → Open / `xattr -cr` to bypass); a public "Download" button needs Apple Developer ID signing + notarization.
 
 ---

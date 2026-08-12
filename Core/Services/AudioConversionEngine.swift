@@ -36,7 +36,16 @@ actor AudioConversionEngine {
         case let .constant(kbps):
             arguments.append(contentsOf: ["-b:a", "\(kbps)k"])
         }
-        
+
+        // Resample / remix only when the user picked a concrete target; leaving
+        // it on `.original` keeps FFmpeg's source-matching default.
+        if let hertz = job.settings.sampleRate.hertz {
+            arguments.append(contentsOf: ["-ar", "\(hertz)"])
+        }
+        if let channelCount = job.settings.channels.count {
+            arguments.append(contentsOf: ["-ac", "\(channelCount)"])
+        }
+
         if job.settings.preserveMetadata {
             arguments.append(contentsOf: ["-map_metadata", "0"])
         }

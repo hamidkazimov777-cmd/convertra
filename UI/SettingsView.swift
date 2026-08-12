@@ -156,6 +156,36 @@ struct SettingsView: View {
             Divider().background(Theme.Colors.borderSubtle)
 
             settingRow(
+                title: loc["Частота"],
+                subtitle: loc["Частота дискретизации выходного файла."]
+            ) {
+                Picker("", selection: $settings.defaultSampleRate) {
+                    ForEach(ConversionSettings.SampleRate.allCases) { rate in
+                        Text(sampleRateLabel(rate)).tag(rate)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 110)
+            }
+
+            Divider().background(Theme.Colors.borderSubtle)
+
+            settingRow(
+                title: loc["Каналы"],
+                subtitle: loc["Число каналов выходного файла."]
+            ) {
+                Picker("", selection: $settings.defaultChannels) {
+                    ForEach(ConversionSettings.ChannelLayout.allCases) { layout in
+                        Text(channelLabel(layout)).tag(layout)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 110)
+            }
+
+            Divider().background(Theme.Colors.borderSubtle)
+
+            settingRow(
                 title: loc["Одновременных конвертаций"],
                 subtitle: loc["Сколько файлов конвертируется параллельно. Меньше — стабильнее, больше — быстрее."]
             ) {
@@ -167,6 +197,20 @@ struct SettingsView: View {
                 .labelsHidden()
                 .frame(width: 110)
             }
+        }
+    }
+
+    private func sampleRateLabel(_ rate: ConversionSettings.SampleRate) -> String {
+        guard let hertz = rate.hertz else { return loc["Оригинал"] }
+        let khz = Double(hertz) / 1000
+        return khz == khz.rounded() ? "\(Int(khz)) kHz" : String(format: "%.1f kHz", khz)
+    }
+
+    private func channelLabel(_ layout: ConversionSettings.ChannelLayout) -> String {
+        switch layout {
+        case .original: return loc["Оригинал"]
+        case .stereo: return loc["Стерео"]
+        case .mono: return loc["Моно"]
         }
     }
 
