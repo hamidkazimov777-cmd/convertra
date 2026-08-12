@@ -69,6 +69,18 @@ final class AppViewModel: ObservableObject {
     @Published var isDeleteConfirmationPresented = false
     @Published var folderAliases: [URL: String] = [:]
 
+    // Auto-import: watch one user-chosen folder and add new audio automatically.
+    @Published private(set) var autoImportEnabled = false
+    @Published private(set) var autoImportFolderURL: URL?
+    private let folderWatcher = FolderWatcher()
+    private var autoImportScopeHeld = false
+    private var autoImportRescanPending = false
+
+    private enum AutoImportKeys {
+        static let enabled = "autoImportEnabled"
+        static let bookmark = "autoImportBookmark"
+    }
+
     private let libraryScanner = AudioLibraryScanner()
     private let technicalMetadataExtractor = AudioTechnicalMetadataExtractor()
     private let metadataExtractor = AudioMetadataExtractor()
@@ -463,6 +475,95 @@ final class AppViewModel: ObservableObject {
         
         analyzeForDuplicates()
         isRestoringLibrary = false
+        restoreAutoImport()
+    }
+
+    // MARK: - Auto-import (folder watching)
+
+    /// Prompts for a folder to watch, stores a security-scoped bookmark, and
+    /// starts watching it (plus an initial catch-up scan).
+    func chooseAutoImportFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = loc["Выбрать"]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        if let data = try? url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil) {
+            UserDefaults.standard.set(data, forKey: AutoImportKeys.bookmark)
+        }
+        autoImportFolderURL = url
+        autoImportEnabled = true
+        UserDefaults.standard.set(true, forKey: AutoImportKeys.enabled)
+        beginWatching(url: url)
+        Task { await scanAndAdd(urls: [url]) }
+    }
+
+    /// Toggles auto-import. Turning it on without a chosen folder prompts for one.
+    func setAutoImport(enabled: Bool) {
+        if enabled {
+            guard let url = autoImportFolderURL else {
+                chooseAutoImportFolder()
+                return
+            }
+            autoImportEnabled = true
+            UserDefaults.standard.set(true, forKey: AutoImportKeys.enabled)
+            beginWatching(url: url)
+            Task { await scanAndAdd(urls: [url]) }
+        } else {
+            autoImportEnabled = false
+            UserDefaults.standard.set(false, forKey: AutoImportKeys.enabled)
+            folderWatcher.stop()
+            releaseAutoImportScope()
+        }
+    }
+
+    private func restoreAutoImport() {
+        guard UserDefaults.standard.bool(forKey: AutoImportKeys.enabled),
+              let data = UserDefaults.standard.data(forKey: AutoImportKeys.bookmark) else { return }
+        var isStale = false
+        guard let url = try? URL(
+            resolvingBookmarkData: data,
+            options: [.withSecurityScope, .withoutUI],
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        ) else { return }
+
+        autoImportFolderURL = url
+        autoImportEnabled = true
+        beginWatching(url: url)
+        Task { await scanAndAdd(urls: [url]) }
+    }
+
+    private func beginWatching(url: URL) {
+        folderWatcher.stop()
+        releaseAutoImportScope()
+        autoImportScopeHeld = url.startAccessingSecurityScopedResource()
+        folderWatcher.start(url: url) { [weak self] in
+            Task { @MainActor in self?.handleWatchedFolderChange() }
+        }
+    }
+
+    private func releaseAutoImportScope() {
+        if autoImportScopeHeld, let url = autoImportFolderURL {
+            url.stopAccessingSecurityScopedResource()
+        }
+        autoImportScopeHeld = false
+    }
+
+    /// A change fired inside the watched folder. Scans it (dedup is by URL in
+    /// `scanAndAdd`); if a scan is already running, remembers to re-scan once
+    /// it frees so nothing dropped mid-scan is missed.
+    private func handleWatchedFolderChange() {
+        guard autoImportEnabled, let url = autoImportFolderURL else { return }
+        guard !isLibraryProcessing else { autoImportRescanPending = true; return }
+        autoImportRescanPending = false
+        Task {
+            await scanAndAdd(urls: [url])
+            if autoImportRescanPending { handleWatchedFolderChange() }
+        }
     }
 
     private func persistLibrary() async -> Bool {

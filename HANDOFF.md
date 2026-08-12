@@ -1,7 +1,7 @@
 # Convertra — Project Handoff Document
 
 ## 1. PROJECT STATE
-- **Current Stage**: Stage 4.9 — Light Theme & Appearance Setting (COMPLETE)
+- **Current Stage**: Stage 4.10 — Folder Auto-Import (FSEvents) (COMPLETE)
 - **Completed Roadmap**:
   - Stage 1: Foundation & Shared Domain Models (macOS 12+ SwiftUI app shell, AudioFile, AudioMetadata, AudioAnalysis, CamelotKey).
   - Stage 2: Library Ingestion & Delta-Sync CoreData/SQLite Persistence (`AudioLibraryScanner`, `LibraryPersistenceStore`).
@@ -72,6 +72,13 @@
     - **Settings UI**: new "Оформление" card with a segmented Система/Светлая/Тёмная control, above Conversion. RU/EN/ES strings added.
     - **Light-mode fix**: `BottomPlayerView` play button used hardcoded `.white`, which vanished on the inactive grey circle in light mode — now themed (`textSecondary` when no track, white on the violet gradient when active). Other hardcoded whites are on the violet accent or the intentionally-dark splash, so they were left.
     - **Verification**: `swift build` clean; release bundle rebuilt (`./package_app.sh`, `valid on disk`); both themes verified by launching (dark default, then forced light via `defaults write com.hamidkazimov.convertra appearanceMode light`) — light renders correctly (light sidebar/canvas, dark text, accents readable, borders visible). Appearance reset to default afterwards.
+  - **Stage 4.10 — Folder Auto-Import (FSEvents) (Current session)**:
+    - **What**: the user can pick one folder to watch; new audio files dropped into it are added to the library automatically (no drag/Import). Reuses the existing `scanAndAdd` pipeline (analysis + dedup by URL), so no new import logic.
+    - **Watcher**: new `Core/Services/FolderWatcher.swift` — a thin FSEvents wrapper (`FSEventStreamCreate` with `kFSEventStreamCreateFlagFileEvents|NoDefer`, 1 s latency to coalesce bursts, dispatched on the main queue). `start(url:onChange:)` / `stop()` / `deinit`. Registered in `Package.swift`.
+    - **AppViewModel**: owns the watcher and auto-import state (`autoImportEnabled`, `autoImportFolderURL`). `chooseAutoImportFolder()` opens an `NSOpenPanel`, stores a **security-scoped bookmark** (same `.withSecurityScope` pattern already used for tracks), enables watching and runs an initial catch-up scan. `setAutoImport(enabled:)` toggles it (turning on with no folder prompts for one). `restoreAutoImport()` (called at the end of `restorePersistedLibrary`) resolves the saved bookmark and resumes watching on launch. `handleWatchedFolderChange()` re-scans on each event, guarding against overlapping scans (`isLibraryProcessing`) with a pending-rescan flag so nothing dropped mid-scan is missed. Security scope is held while watching and released on stop. Persistence via `UserDefaults` (`autoImportEnabled`, `autoImportBookmark`).
+    - **Concurrency**: FSEvents callback (C function on the main dispatch queue) hops onto the main actor via `Task { @MainActor in … }` before touching `AppViewModel`.
+    - **Settings**: new "Библиотека" card — an "Автоимпорт из папки" toggle plus, once a folder is set, a "Папка" row showing the path with a "Изменить…" button. `SettingsView` now also takes `@EnvironmentObject AppViewModel`. RU/EN/ES strings added.
+    - **Verification**: `swift build` clean; release bundle rebuilt (`./package_app.sh`, `valid on disk`) and launched — `restoreAutoImport` no-ops safely with no saved folder; app runs. End-to-end file-drop test is manual (pick a folder in Settings → drop an audio file in it). Watches a single folder only, by design.
 - **Project Status**: Core app release-ready; analysis accuracy now honestly benchmarked (see Section 2). Duplicate detection and library management (blocks C/D) remain for a future pass. Redesign builds clean via `swift build`; runs via `./.build/debug/Convertra`. Distribution note: the bundle is **ad-hoc signed** — it runs, but downloaded copies hit Gatekeeper (right-click → Open / `xattr -cr` to bypass); a public "Download" button needs Apple Developer ID signing + notarization.
 
 ---

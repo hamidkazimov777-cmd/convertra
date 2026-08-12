@@ -47,6 +47,7 @@ let package = Package(
                 "Features/Library/LibraryView.swift",
                 "Core/Audio/SupportedAudioFormat.swift",
                 "Core/Services/AudioLibraryScanner.swift",
+                "Core/Services/FolderWatcher.swift",
                 "Core/Services/AudioTechnicalMetadataExtractor.swift",
                 "Core/Services/AudioMetadataExtractor.swift",
                 "Core/Services/ArtworkCache.swift",

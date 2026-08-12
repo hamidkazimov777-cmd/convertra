@@ -8,6 +8,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var conversionQueue: ConversionQueueViewModel
+    @EnvironmentObject private var appState: AppViewModel
     @EnvironmentObject private var loc: Localization
 
     @State private var cacheCleared = false
@@ -29,6 +30,7 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     generalSection
+                    librarySection
                     appearanceSection
                     conversionSection
 
@@ -73,6 +75,41 @@ struct SettingsView: View {
                           systemImage: cacheCleared ? "checkmark" : "trash")
                 }
                 .buttonStyle(GhostButtonStyle())
+            }
+        }
+    }
+
+    // MARK: - Library
+
+    private var librarySection: some View {
+        settingsCard(title: loc["Библиотека"]) {
+            settingRow(
+                title: loc["Автоимпорт из папки"],
+                subtitle: loc["Новые аудиофайлы из выбранной папки добавляются в библиотеку автоматически."]
+            ) {
+                Toggle("", isOn: Binding(
+                    get: { appState.autoImportEnabled },
+                    set: { appState.setAutoImport(enabled: $0) }
+                ))
+                .toggleStyle(.switch)
+                .tint(Theme.Colors.accentPrimary)
+                .labelsHidden()
+            }
+
+            if let folder = appState.autoImportFolderURL {
+                Divider().background(Theme.Colors.borderSubtle)
+
+                settingRow(
+                    title: loc["Папка"],
+                    subtitle: folder.path
+                ) {
+                    Button {
+                        appState.chooseAutoImportFolder()
+                    } label: {
+                        Label(loc["Изменить…"], systemImage: "folder")
+                    }
+                    .buttonStyle(GhostButtonStyle())
+                }
             }
         }
     }
