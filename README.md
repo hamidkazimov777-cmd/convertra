@@ -4,6 +4,7 @@
 
 ![Splash Screen](screenshots/splash.png)
 ![Library View](screenshots/library.png)
+![Metadata Editor](screenshots/metadata.png)
 ![Conversion Queue](screenshots/conversion.png)
 
 ## Product description
