@@ -38,15 +38,15 @@ enum Theme {
         static let bgSecondary = adaptive(dark: "#18181C", light: "#FFFFFF") // raised card / panel
         static let bgElevated = adaptive(dark: "#1B1C21", light: "#FFFFFF")  // popover / menu
         static let bgHover = adaptive(dark: "#1E1F23", light: "#EAECEF")     // hover surface
-        static let bgSelected = adaptive(dark: "#23253A", light: "#E5E6FB")  // selected (violet-tinted)
+        static let bgSelected = adaptive(dark: "#2A2416", light: "#FBF1DB")  // selected (amber-tinted)
 
-        // MARK: Primary accent (violet → indigo) — shared across themes
-        static let accentPrimary = Color(hex: "#676CF4")
-        static let accentBright = Color(hex: "#7689FF")
-        static let accentDeep = Color(hex: "#574EDD")
-        static let accentHover = Color(hex: "#7C81FF")
-        static let accentPressed = Color(hex: "#574EDD")
-        static let accentMuted = Color(hex: "#8E92E8")
+        // MARK: Primary accent (amber / industrial) — shared across themes
+        static let accentPrimary = Color(hex: "#F0A02A")
+        static let accentBright = Color(hex: "#FFBF57")
+        static let accentDeep = Color(hex: "#CF7D1C")
+        static let accentHover = Color(hex: "#FFBF57")
+        static let accentPressed = Color(hex: "#CF7D1C")
+        static let accentMuted = Color(hex: "#C99A5F")
 
         // MARK: Energy accent (warm amber — ratings, hot signals)
         static let energy = Color(hex: "#EFA831")
