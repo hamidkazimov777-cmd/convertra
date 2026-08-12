@@ -71,14 +71,14 @@ struct SplashView: View {
                 // Wordmark
                 Text("Convertra")
                     .font(.inter(size: 40, weight: .bold))
-                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .foregroundStyle(.white)
                     .opacity(wordmarkRevealed ? 1 : 0)
                     .offset(y: wordmarkRevealed ? 0 : 8)
 
                 // Подпись
                 Text(loc["БИБЛИОТЕКА · АНАЛИЗ · КОНВЕРТАЦИЯ"])
                     .font(.inter(size: 10, weight: .medium))
-                    .foregroundStyle(Theme.Colors.textMuted)
+                    .foregroundStyle(.white.opacity(0.55))
                     .opacity(wordmarkRevealed ? 0.9 : 0)
                     .offset(y: wordmarkRevealed ? 0 : 6)
             }
