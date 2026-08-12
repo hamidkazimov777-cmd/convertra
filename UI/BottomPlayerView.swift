@@ -186,7 +186,10 @@ struct BottomPlayerView: View {
             Button(action: { viewModel.togglePlayback() }) {
                 Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(.white)
+                    // White reads on the violet gradient; on the inactive grey
+                    // circle fall back to a themed colour so it stays visible in
+                    // light mode.
+                    .foregroundStyle(viewModel.currentTrack == nil ? Theme.Colors.textSecondary : .white)
                     .frame(width: 40, height: 40)
                     .background(
                         ZStack {

@@ -1,20 +1,46 @@
 import SwiftUI
+import AppKit
 
 // MARK: - Design System (ForzaDJ visual language)
 // Deep cold-graphite surfaces, violet primary, amber "energy" accent,
 // hairline borders, layered soft shadows + signature violet glow.
+//
+// Surfaces, text and borders are appearance-adaptive: each resolves to a dark
+// or light value against the current SwiftUI color scheme (driven by the
+// Appearance setting via `.preferredColorScheme`). The violet/amber accents,
+// gradients and waveform ramp are shared across both themes — they read on
+// either background — so only one value is kept for them.
 
 enum Theme {
     enum Colors {
-        // MARK: Backgrounds (layered graphite, cold violet undertone)
-        static let bgBase = Color(hex: "#0B0C0F")      // deepest — sidebar / chrome
-        static let bgPrimary = Color(hex: "#0E0E11")   // content canvas
-        static let bgSecondary = Color(hex: "#18181C") // raised card / panel
-        static let bgElevated = Color(hex: "#1B1C21")  // popover / menu
-        static let bgHover = Color(hex: "#1E1F23")     // hover surface
-        static let bgSelected = Color(hex: "#23253A")  // selected (violet-tinted)
+        /// Dynamic color that resolves per effective appearance. Both inputs are
+        /// hex strings (`dark` for dark mode, `light` for light mode).
+        private static func adaptive(dark: String, light: String) -> Color {
+            Color(nsColor: NSColor(name: nil) { appearance in
+                let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                return NSColor(Color(hex: isDark ? dark : light))
+            })
+        }
 
-        // MARK: Primary accent (violet → indigo)
+        /// Hairline that is white-by-opacity on dark and black-by-opacity on
+        /// light, so borders stay visible in both themes.
+        private static func adaptiveHairline(dark: Double, light: Double) -> Color {
+            Color(nsColor: NSColor(name: nil) { appearance in
+                let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                return isDark ? NSColor.white.withAlphaComponent(dark)
+                              : NSColor.black.withAlphaComponent(light)
+            })
+        }
+
+        // MARK: Backgrounds (layered graphite ⇄ light greys)
+        static let bgBase = adaptive(dark: "#0B0C0F", light: "#F0F1F4")      // deepest — sidebar / chrome
+        static let bgPrimary = adaptive(dark: "#0E0E11", light: "#FAFBFC")   // content canvas
+        static let bgSecondary = adaptive(dark: "#18181C", light: "#FFFFFF") // raised card / panel
+        static let bgElevated = adaptive(dark: "#1B1C21", light: "#FFFFFF")  // popover / menu
+        static let bgHover = adaptive(dark: "#1E1F23", light: "#EAECEF")     // hover surface
+        static let bgSelected = adaptive(dark: "#23253A", light: "#E5E6FB")  // selected (violet-tinted)
+
+        // MARK: Primary accent (violet → indigo) — shared across themes
         static let accentPrimary = Color(hex: "#676CF4")
         static let accentBright = Color(hex: "#7689FF")
         static let accentDeep = Color(hex: "#574EDD")
@@ -29,15 +55,15 @@ enum Theme {
         // MARK: Semantic
         static let destructive = Color(hex: "#FF6467")
 
-        // MARK: Text
-        static let textPrimary = Color(hex: "#FAFAFA")
-        static let textSecondary = Color(hex: "#A3A4AB")
-        static let textMuted = Color(hex: "#6E7079")
+        // MARK: Text (near-white ⇄ near-black)
+        static let textPrimary = adaptive(dark: "#FAFAFA", light: "#17181C")
+        static let textSecondary = adaptive(dark: "#A3A4AB", light: "#5B5D66")
+        static let textMuted = adaptive(dark: "#6E7079", light: "#8A8C94")
 
-        // MARK: Hairline borders (white on dark, by opacity)
-        static let border = Color.white.opacity(0.10)
-        static let borderStrong = Color.white.opacity(0.16)
-        static let borderSubtle = Color.white.opacity(0.06)
+        // MARK: Hairline borders (white-on-dark ⇄ black-on-light, by opacity)
+        static let border = adaptiveHairline(dark: 0.10, light: 0.12)
+        static let borderStrong = adaptiveHairline(dark: 0.16, light: 0.18)
+        static let borderSubtle = adaptiveHairline(dark: 0.06, light: 0.08)
 
         // MARK: Gradients
         static let accentGradient = LinearGradient(

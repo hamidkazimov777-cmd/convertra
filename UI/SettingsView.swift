@@ -29,6 +29,7 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     generalSection
+                    appearanceSection
                     conversionSection
 
                     Text(loc["Настройки сохраняются автоматически и применяются к новым конвертациям."])
@@ -72,6 +73,26 @@ struct SettingsView: View {
                           systemImage: cacheCleared ? "checkmark" : "trash")
                 }
                 .buttonStyle(GhostButtonStyle())
+            }
+        }
+    }
+
+    // MARK: - Appearance
+
+    private var appearanceSection: some View {
+        settingsCard(title: loc["Оформление"]) {
+            settingRow(
+                title: loc["Тема"],
+                subtitle: loc["Светлое или тёмное оформление, либо как в системе."]
+            ) {
+                Picker("", selection: $settings.appearance) {
+                    Text(loc["Система"]).tag(AppearanceMode.system)
+                    Text(loc["Светлая"]).tag(AppearanceMode.light)
+                    Text(loc["Тёмная"]).tag(AppearanceMode.dark)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 240)
             }
         }
     }

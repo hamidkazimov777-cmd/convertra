@@ -1,7 +1,7 @@
 # Convertra — Project Handoff Document
 
 ## 1. PROJECT STATE
-- **Current Stage**: Stage 4.8 — Sample Rate & Channel Conversion Options (COMPLETE)
+- **Current Stage**: Stage 4.9 — Light Theme & Appearance Setting (COMPLETE)
 - **Completed Roadmap**:
   - Stage 1: Foundation & Shared Domain Models (macOS 12+ SwiftUI app shell, AudioFile, AudioMetadata, AudioAnalysis, CamelotKey).
   - Stage 2: Library Ingestion & Delta-Sync CoreData/SQLite Persistence (`AudioLibraryScanner`, `LibraryPersistenceStore`).
@@ -66,6 +66,12 @@
     - **Settings**: two pickers in the Conversion card — "Частота" (sample rate) and "Каналы" (channels) — bound to persisted `AppSettings.defaultSampleRate` / `defaultChannels` (default `.original`). Labels built in the view (`sampleRateLabel` shows "44.1/48/96 kHz", `channelLabel` reuses existing Стерео/Моно strings); new key "Оригинал" + two subtitle strings (RU/EN/ES).
     - **Model/tests**: `ConversionSettings.mp3_320CBR` and `AppSettings.conversionSettings` updated to pass the new fields; `ConvertraModelTests.testDefaultConversionUses320KilobitCBRMP3` still passes (only asserts the pre-existing fields).
     - **Verification**: `swift build` clean; `ConvertraModelTests` green; release bundle rebuilt (`./package_app.sh`, `valid on disk`) and launched.
+  - **Stage 4.9 — Light Theme & Appearance Setting (Current session)**:
+    - **Adaptive palette**: `Theme.Colors` surfaces/text/borders are now appearance-adaptive. Added private helpers `adaptive(dark:light:)` (two hex values) and `adaptiveHairline(dark:light:)` (white-on-dark ⇄ black-on-light by opacity) that build a dynamic `Color(nsColor: NSColor(name:nil){…})` resolving against the effective appearance. Backgrounds (`bgBase`…`bgSelected`), text (`textPrimary/Secondary/Muted`) and borders now carry both a dark and a light value. The violet/amber **accents, gradients and waveform ramp stay single-valued** — they read on both backgrounds. `import AppKit` added to `Theme.swift`.
+    - **Appearance setting**: new `AppearanceMode` enum (`.system`/`.light`/`.dark`) + persisted `AppSettings.appearance` (default `.dark`, preserving the current look). `ConvertraApp` replaced the hardcoded `.preferredColorScheme(.dark)` with `.preferredColorScheme(settings.appearance.colorScheme)` (`.system` → `nil`). Since the dynamic `NSColor`s resolve against SwiftUI's color-scheme environment, flipping the setting reskins the whole app live.
+    - **Settings UI**: new "Оформление" card with a segmented Система/Светлая/Тёмная control, above Conversion. RU/EN/ES strings added.
+    - **Light-mode fix**: `BottomPlayerView` play button used hardcoded `.white`, which vanished on the inactive grey circle in light mode — now themed (`textSecondary` when no track, white on the violet gradient when active). Other hardcoded whites are on the violet accent or the intentionally-dark splash, so they were left.
+    - **Verification**: `swift build` clean; release bundle rebuilt (`./package_app.sh`, `valid on disk`); both themes verified by launching (dark default, then forced light via `defaults write com.hamidkazimov.convertra appearanceMode light`) — light renders correctly (light sidebar/canvas, dark text, accents readable, borders visible). Appearance reset to default afterwards.
 - **Project Status**: Core app release-ready; analysis accuracy now honestly benchmarked (see Section 2). Duplicate detection and library management (blocks C/D) remain for a future pass. Redesign builds clean via `swift build`; runs via `./.build/debug/Convertra`. Distribution note: the bundle is **ad-hoc signed** — it runs, but downloaded copies hit Gatekeeper (right-click → Open / `xattr -cr` to bypass); a public "Download" button needs Apple Developer ID signing + notarization.
 
 ---

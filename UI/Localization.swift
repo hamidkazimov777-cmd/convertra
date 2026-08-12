@@ -80,6 +80,12 @@ final class Localization: ObservableObject {
         "Одновременных конвертаций": ("Simultaneous conversions", "Conversiones simultáneas"),
         "Сколько файлов конвертируется параллельно. Меньше — стабильнее, больше — быстрее.": ("How many files convert in parallel. Fewer is more stable, more is faster.", "Cuántos archivos se convierten en paralelo. Menos es más estable, más es más rápido."),
         "Настройки сохраняются автоматически и применяются к новым конвертациям.": ("Settings are saved automatically and apply to new conversions.", "Los ajustes se guardan automáticamente y se aplican a nuevas conversiones."),
+        "Оформление": ("Appearance", "Apariencia"),
+        "Тема": ("Theme", "Tema"),
+        "Светлое или тёмное оформление, либо как в системе.": ("Light or dark appearance, or match the system.", "Apariencia clara u oscura, o según el sistema."),
+        "Система": ("System", "Sistema"),
+        "Светлая": ("Light", "Clara"),
+        "Тёмная": ("Dark", "Oscura"),
 
         // Library header / drop / toolbar
         "Импорт": ("Import", "Importar"),

@@ -1,4 +1,24 @@
 import Foundation
+import SwiftUI
+
+/// Interface appearance choice. `.system` follows macOS; the others force a
+/// specific theme via `.preferredColorScheme`.
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    /// `nil` means "follow the system" for `.preferredColorScheme`.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
 
 /// User-facing preferences, persisted in `UserDefaults`. Mirrors the
 /// `Localization.shared` pattern: a single shared, observable store so both the
@@ -52,6 +72,11 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(defaultChannels.rawValue, forKey: Keys.channels) }
     }
 
+    /// Interface theme (System / Light / Dark).
+    @Published var appearance: AppearanceMode {
+        didSet { UserDefaults.standard.set(appearance.rawValue, forKey: Keys.appearance) }
+    }
+
     /// Maximum number of conversions the queue runs at once. Previously the
     /// queue launched an ffmpeg process for *every* job simultaneously, which on
     /// a large batch spawned dozens of processes and thrashed the machine. A
@@ -79,6 +104,7 @@ final class AppSettings: ObservableObject {
         static let preserveFolderStructure = "preserveFolderStructure"
         static let sampleRate = "defaultSampleRate"
         static let channels = "defaultChannels"
+        static let appearance = "appearanceMode"
         static let maxParallel = "maxParallelConversions"
     }
 
@@ -98,6 +124,8 @@ final class AppSettings: ObservableObject {
         defaultChannels = ConversionSettings.ChannelLayout(
             rawValue: defaults.string(forKey: Keys.channels) ?? ""
         ) ?? .original
+        // Default to dark to preserve the existing look for current users.
+        appearance = AppearanceMode(rawValue: defaults.string(forKey: Keys.appearance) ?? "") ?? .dark
         let savedParallel = defaults.integer(forKey: Keys.maxParallel)
         maxParallelConversions = savedParallel == 0 ? Self.defaultParallelism : savedParallel
     }
