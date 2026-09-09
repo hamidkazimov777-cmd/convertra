@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "description": "Example Convertra benchmark dataset. Replace the entries with your own labelled tracks. Audio files are referenced by absolute path and are never committed.",
+  "tracks": [
+    {
+      "id": "example-001",
+      "filePath": "/absolute/path/to/your/track-1.mp3",
+      "fileName": "track-1.mp3",
+      "title": "Example Track 1",
+      "artist": "Example Artist",
+      "genre": "tech-house",
+      "audioFormat": "mp3",
+      "durationSeconds": 372.0,
+      "sampleRate": 44100.0,
+      "groundTruthBPM": 124.0,
+      "groundTruthMusicalKey": "F Minor",
+      "groundTruthCamelotKey": "4A",
+      "firstBeatTimeSeconds": 0.21,
+      "mixedInKey": { "bpm": 124.0, "musicalKey": "F Minor", "camelotKey": "4A" },
+      "rekordbox": { "bpm": 124.0, "musicalKey": "Fm", "camelotKey": "4A" },
+      "lexicon": null
+    },
+    {
+      "id": "example-002",
+      "filePath": "/absolute/path/to/your/track-2.flac",
+      "fileName": "track-2.flac",
+      "title": "Example Track 2",
+      "artist": "Example Artist",
+      "genre": "dnb",
+      "audioFormat": "flac",
+      "durationSeconds": 298.0,
+      "sampleRate": 44100.0,
+      "groundTruthBPM": 174.0,
+      "groundTruthMusicalKey": "A Minor",
+      "groundTruthCamelotKey": "8A",
+      "firstBeatTimeSeconds": 0.05,
+      "mixedInKey": { "bpm": 174.0, "musicalKey": "A Minor", "camelotKey": "8A" },
+      "rekordbox": null,
+      "lexicon": null
+    }
+  ]
+}
