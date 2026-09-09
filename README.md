@@ -1,95 +1,93 @@
-<div align="center">
-
 # Convertra
 
-**Native macOS Audio Platform & Proprietary DSP Engine for DJs**
+Native macOS app that analyses a DJ library — musical key (Camelot) and BPM —
+entirely on-device, with no cloud service and no neural network.
 
-[![macOS](https://img.shields.io/badge/macOS-12.0%2B-000000?style=flat-square&logo=apple&logoColor=white)]()
-[![Swift](https://img.shields.io/badge/Swift-5.9-F05138?style=flat-square&logo=swift&logoColor=white)]()
-[![DSP](https://img.shields.io/badge/AudioCore-C%2B%2B%20%7C%20vDSP-00599C?style=flat-square)]()
+Built in Swift on Apple's native frameworks (SwiftUI, AVFoundation, CoreData)
+rather than a web view wrapped in Electron. Key and tempo detection run through
+`ConvertraAudioCore`, a closed-source DSP framework, over Apple's `Accelerate`
+and `vDSP`.
 
-</div>
+## The problem it solves
 
----
+DJs tag their libraries with tools like rekordbox, Serato or Mixed In Key to get
+a musical key and BPM for every track, so sets can be beat- and harmonically
+mixed. Convertra does that analysis locally: drop a folder in, get Camelot keys
+and tempos written back to the files, without uploading anything or paying a
+subscription.
 
-## What is Convertra?
+## Accuracy
 
-Convertra is a professional, native macOS application designed for DJs and music producers. It serves as a local, offline alternative to the analysis and tagging workflows found in industry standards like rekordbox, Serato, and Mixed In Key.
+Measured against ground-truth tags from a private set of 111 commercial tracks
+(house, tech-house, hip-hop, pop). The tracks are commercial recordings and are
+not redistributable, so the set itself is not in the repository; the harness,
+schema and methodology that produced these numbers are — see
+[`benchmark/`](benchmark/).
 
-Instead of wrapping a web app in Electron, Convertra is built from the ground up using **Swift** and Apple's native frameworks (SwiftUI, AVFoundation, CoreData). This ensures zero latency, minimal memory footprint, and deep OS integration.
+| Metric | Result |
+| --- | --- |
+| Key — exact Camelot match | ~70% |
+| Key — harmonically compatible match | ~83% |
+| Tempo — within ±0.5 BPM | ~82% |
+| Analysis time per track (Apple Silicon) | ~1 s |
 
-**Core Capabilities:**
-- **Smart Ingestion**: Drag-and-drop recursive directory scanning with delta-sync SQLite persistence.
-- **Pro-Grade Metadata**: ID3v2 tagging with native cover-art embedding (supports both MP3 and AIFF).
-- **Lossless Conversion**: Batch conversion queue powered by an optimized FFmpeg pipeline.
-- **Native Playback**: High-performance AVFoundation player with dynamic waveform visualization.
+"Harmonically compatible" means the detected key is the same Camelot number or
+an adjacent one — a mix-safe neighbour on the wheel — rather than an exact hit.
+It is reported separately because a neighbour is usable in a set and an exact
+match is not always necessary.
 
----
+## Technical notes
 
-## 💎 The Crown Jewel: Convertra AudioCore
+- **On-device DSP.** The pipeline is decode → HPSS pre-separation →
+  tempo detection → key detection → Camelot mapping. Key detection uses harmonic
+  pitch-class profiling with peak-picking; tempo uses autocorrelation with
+  parabolic interpolation for sub-BPM resolution. No network, no model download.
+- **Closed engine, open orchestration.** The heavy DSP lives in the
+  `ConvertraAudioCore.xcframework` binary; the ~9k lines of Swift in this repo
+  (`Core/Services/Analysis`, metadata, persistence, playback, UI) orchestrate it
+  and are open to read.
+- **Concurrency.** Library scanning is actor-based; tempo and key detection run
+  concurrently per track.
+- **Single-pass decode.** Audio is decoded once through `AVAssetReader` straight
+  into vDSP buffers, so a track is not read from disk more than necessary.
+- **Native metadata.** ID3v2 tag and cover-art writing for MP3 and AIFF is done
+  natively, not shelled out.
+- **Sandbox compliance.** Security-scoped resource handling for App Sandbox
+  constraints.
 
-While the UI and library management are open for inspection, the true engineering feat of this project is **Convertra AudioCore** — a proprietary Digital Signal Processing (DSP) engine. 
+## Stack
 
-AudioCore performs musical key (Camelot Wheel) and BPM tempo detection entirely on-device. It runs without cloud APIs or heavy neural networks, utilizing pure mathematical DSP over Apple's `Accelerate` and `vDSP` frameworks.
+Swift · SwiftUI · AVFoundation · CoreData/SQLite · Accelerate/vDSP · FFmpeg
+(batch conversion) · `ConvertraAudioCore.xcframework` (closed-source DSP)
 
-### Benchmark Validation
-Tested against ground-truth tags from 111 commercial tracks (house, tech-house, hip-hop, pop):
-
-| Metric | Accuracy / Performance |
-|---|---|
-| **Key Detection** (Exact Camelot match) | **~70%** |
-| **Key Detection** (Harmonic/mix-compatible match) | **~83%** |
-| **Tempo Detection** (Within ±0.5 BPM) | **~82%** |
-| **Analysis Speed** (Per track on Apple Silicon) | **~1 second** |
-
-*Methodology: Peak-picking harmonic pitch-class profiling (HPCP) for key detection; autocorrelation with parabolic sub-BPM interpolation for tempo. Detailed methodology is documented in [`HANDOFF.md`](./HANDOFF.md).*
-
-> **OEM Licensing:** The AudioCore engine is distributed within this repository as a pre-compiled `.xcframework` binary. If you are building DJ software and need a drop-in C++/Swift DSP engine for key and BPM detection, please reach out.
-
----
-
-## Architecture
-
-The application is structured using a domain-driven architecture to maintain strict separation between the UI, business logic, and the heavy DSP layers:
-
-```text
-App/                    Application lifecycle & global state
-Core/
-  ├── Audio/            AVFoundation player engines
-  ├── Services/
-  │   ├── Analysis/     AudioAnalysisEngine adapters → Convertra AudioCore binary
-  │   ├── Metadata/     Native ID3v2 tag/cover-art writers
-  │   └── Persistence/  CoreData/SQLite delta-sync storage
-Features/
-  ├── Library/          Drag-and-drop, track inspector, recursive scanning
-  ├── Conversion/       FFmpeg-powered batch conversion queue
-  └── Player/           Waveform rendering and playback control
-Frameworks/             ConvertraAudioCore.xcframework (Closed-source DSP binary)
-```
-
-**Engineering Highlights:**
-- **Concurrency**: Actor-based background library scanning. Tempo and Key detection run concurrently per track.
-- **Sandbox Compliance**: Security-scoped resource handling for robust App Store sandbox constraints.
-- **Memory Efficiency**: Fast single-pass audio decode via `AVAssetReader` directly into vDSP buffers.
-
----
-
-## Build Instructions
+## Build and test
 
 ```bash
 git clone https://github.com/hamidkazimov777-cmd/convertra.git
 cd convertra
 
-# Run test suite
-swift test
-
-# Build and package signed Convertra.app bundle
-./package_app.sh
+swift test          # 59 unit tests across 20 files
+./package_app.sh    # build and locally sign Convertra.app
 ```
-*Requires macOS 12.0+ and Xcode 15.2+*
 
----
+Requires macOS 12.0+ and Xcode 15.2+.
 
-## Contact & Credits
-**Built by Hamid Kazimov** — Product Builder & Software Creator. 
-For professional inquiries, collaboration, or AudioCore licensing, contact me on [Telegram](https://t.me/hamidkazim).
+## Known limitations
+
+- The 111-track benchmark set is private (commercial audio), so the headline
+  accuracy numbers are reproducible only with your own labelled tracks; the
+  harness in [`benchmark/`](benchmark/) makes that path explicit.
+- `ConvertraAudioCore` ships as a pre-compiled binary; its DSP internals are not
+  open. The Swift layer that drives it is.
+- Accuracy is highest on 4/4 electronic material with a clear tonal centre;
+  ambient, heavily atonal, or beatless tracks are weaker for both key and tempo.
+- macOS only. The engine is built for Apple Silicon and Intel; there is no
+  Windows or Linux target.
+
+## Licence
+
+Source-available, all rights reserved — see [LICENSE](LICENSE). The
+`ConvertraAudioCore` engine is a closed-source binary; contact me about OEM
+licensing if you need a drop-in key/BPM DSP engine.
+
+Built by Hamid Kazimov — [Telegram](https://t.me/hamidkazim).
